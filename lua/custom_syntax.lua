@@ -35,9 +35,9 @@ vim.api.nvim_create_autocmd("FileType", {
       vim.cmd([[syntax match ObsidianNumber /\<\d\+\.\d\+\>/]])
       
       -- 3. Régions avec contenu (priorité moyenne)
-      vim.cmd([[syntax region ObsidianString start=/"/ skip=/\\"/ end=/"/ contains=ObsidianCapitalLetters,ObsidianNumber]])
-      vim.cmd([[syntax region ObsidianString start=/(/ skip=/\\"/ end=/)/ contains=ObsidianCapitalLetters,ObsidianNumber]])
-      vim.cmd([[syntax region ObsidianString start=/[/ skip=/\\"/ end=/]/ contains=ObsidianCapitalLetters,ObsidianNumber]])
+      -- vim.cmd([[syntax region ObsidianString start=/"/ skip=/\\"/ end=/"/ contains=ObsidianCapitalLetters,ObsidianNumber]])
+      -- vim.cmd([[syntax region ObsidianString start=/(/ skip=/\\"/ end=/)/ contains=ObsidianCapitalLetters,ObsidianNumber]])
+      -- vim.cmd([[syntax region ObsidianString start=/[/ skip=/\\"/ end=/]/ contains=ObsidianCapitalLetters,ObsidianNumber]])
       -- Suppression de la règle pour les guillemets simples/apostrophes pour éviter les conflits avec "l'importance"
       
       -- 4. Mots-clés et fonctions (priorité moyenne-haute)
