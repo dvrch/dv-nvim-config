@@ -1,0 +1,1 @@
+/home/dv/Bureau/4PLG/.obsidian/plugins/dvrch-syntax_highligting/main.js
