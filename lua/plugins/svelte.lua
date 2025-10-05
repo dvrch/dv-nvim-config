@@ -26,20 +26,5 @@ return {
       },
     },
   },
-  {
-    "evanleck/nvim-svelte",
-    ft = "svelte",
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter",
-      "neovim/nvim-lspconfig",
-    },
-    opts = {
-      -- Vos options de configuration svelte.nvim ici
-      -- Par exemple:
-      -- lsp = {
-      --   enabled = true,
-      --   auto_install = true,
-      -- },
-    },
-  },
+
 }
