@@ -1,27 +1,25 @@
 return {
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = function(_, opts)
-      if type(opts.ensure_installed) == "table" then
-        vim.list_extend(opts.ensure_installed, { "mermaid" })
-      end
-    end,
-  },
-  {
-    "folke/which-key.nvim",
-    optional = true,
     opts = {
-      spec = {
-        { "<leader>m", group = "Mermaid" },
+      ensure_installed = {
+        "markdown",
+        "mermaid",
       },
     },
   },
   {
-    event = "VeryLazy",
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
-    config = function()
-      local mermaid_utils = require("utils.mermaid")
-      vim.keymap.set("n", "<leader>mp", mermaid_utils.preview, { desc = "Aperçu du diagramme Mermaid" })
-    end
-  }
+    "iamcco/markdown-preview.nvim",
+    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+    build = function()
+      vim.fn["mkdp#util#install"]()
+    end,
+    init = function()
+      vim.g.mkdp_filetypes = { "markdown" }
+      vim.g.mkdp_auto_start = 0
+    end,
+    keys = {
+      { "<leader>mp", "<cmd>MarkdownPreview<cr>", desc = "Preview Mermaid diagram" },
+    },
+  },
 }
