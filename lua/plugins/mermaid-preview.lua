@@ -17,17 +17,11 @@ return {
     },
   },
   {
-    "nvim-lua/plenary.nvim", -- dependency for the preview function
-    lazy = true,
-  },
-  {
-    "akinsho/toggleterm.nvim", -- another dependency
-    optional = true,
-  },
-  {
-    "LazyVim/LazyVim",
-    keys = {
-        { "<leader>mp", function() require("utils.mermaid").preview() end, desc = "Aperçu du diagramme Mermaid" },
-    },
+    event = "VeryLazy",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
+    config = function()
+      local mermaid_utils = require("utils.mermaid")
+      vim.keymap.set("n", "<leader>mp", mermaid_utils.preview, { desc = "Aperçu du diagramme Mermaid" })
+    end
   }
 }
