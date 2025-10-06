@@ -17,7 +17,8 @@ return {
     },
   },
   {
-    "neovim/nvim-lspconfig", -- Juste pour ajouter le mapping, pas de dépendance directe
+    -- This is a local plugin spec to set up the mermaid preview
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
       -- La fonction qui génère et affiche l'aperçu
       local function PreviewMermaid()
