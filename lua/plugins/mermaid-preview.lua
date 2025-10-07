@@ -25,11 +25,18 @@ return {
     config = function()
       local function preview_mermaid()
         -- Vérifier que les dépendances sont installées
+        -- Chercher mmdc dans mason ou dans le PATH système
         local mason_bin = vim.fn.expand("$HOME/.local/share/nvim/mason/bin/mmdc")
-        if vim.fn.filereadable(mason_bin) == 0 then
-          vim.notify("Installation de mermaid-cli...", vim.log.levels.INFO)
-          vim.cmd("MasonInstall mermaid-cli")
-          return
+        local mmdc_cmd = vim.fn.filereadable(mason_bin) == 1 and mason_bin or "mmdc"
+        
+        if vim.fn.executable(mmdc_cmd) == 0 then
+          vim.notify("Installation de mermaid-cli via npm...", vim.log.levels.INFO)
+          vim.fn.system("sudo npm install -g @mermaid-js/mermaid-cli")
+          if vim.fn.executable("mmdc") == 0 then
+            vim.notify("Échec de l'installation de mermaid-cli", vim.log.levels.ERROR)
+            return
+          end
+          mmdc_cmd = "mmdc"
         end
 
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
@@ -87,7 +94,7 @@ return {
           os.remove(output_file)
         end, { buffer = buf, silent = true })
 
-        vim.fn.jobstart({mason_bin, "-i", input_file, "-o", output_file}, {
+        vim.fn.jobstart({mmdc_cmd, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             if code == 0 then
               vim.fn.termopen(string.format(
