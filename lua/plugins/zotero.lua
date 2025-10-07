@@ -1,17 +1,7 @@
 return {
   {
     "jalvesaq/zotcite",
-    enabled = function()
-      -- Vérification de python3 et installation si nécessaire
-      if vim.fn.executable("python3") == 0 then
-        vim.notify("Installation de python3...", vim.log.levels.INFO)
-        vim.fn.system("sudo apt-get update && sudo apt-get install -y python3 python3-pip")
-      end
-      if vim.fn.executable("pip3") == 1 then
-        vim.fn.system("pip3 install --user pybtex")
-      end
-      return true
-    end,
+    enabled = false,
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
       vim.g.zotero_sql_path = "/home/dv/snap/zotero-snap/common/Zotero/zotero.sqlite"
