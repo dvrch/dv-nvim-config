@@ -1,22 +1,44 @@
 return {
   {
     "nvim-treesitter/nvim-treesitter",
-    opts = function(_, opts)
-      opts.ensure_installed = opts.ensure_installed or {}
-      vim.list_extend(opts.ensure_installed, { "markdown", "markdown_inline", "mermaid" })
-    end,
+    event = { "BufReadPost", "BufNewFile" },
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+    },
+    opts = {
+      highlight = { enable = true },
+      indent = { enable = true },
+      ensure_installed = {
+        "markdown",
+        "markdown_inline",
+        "mermaid",
+      },
+    },
   },
   {
     "mason-org/mason.nvim",
+    cmd = "Mason",
+    keys = {
+      { "<leader>cm", "<cmd>Mason<cr>", desc = "Mason" },
+    },
+    build = ":MasonUpdate",
     opts = {
-      ensure_installed = { "mermaid-cli" },
+      ensure_installed = {},
+      registries = {
+        "github:mason-org/mason-registry",
+      },
     },
   },
   {
     "folke/which-key.nvim",
+    event = "VeryLazy",
+    init = function()
+      vim.o.timeout = true
+      vim.o.timeoutlen = 300
+    end,
     opts = {
-      spec = {
-        { "<leader>m", { name = "Mermaid", _ = "which_key_ignore" } },
+      defaults = {
+        ["<leader>m"] = { name = "+mermaid" },
       },
     },
   },
@@ -24,19 +46,11 @@ return {
     "nvim-lua/plenary.nvim",
     config = function()
       local function preview_mermaid()
-        -- Vérifier que les dépendances sont installées
-        -- Chercher mmdc dans mason ou dans le PATH système
-        local mason_bin = vim.fn.expand("$HOME/.local/share/nvim/mason/bin/mmdc")
-        local mmdc_cmd = vim.fn.filereadable(mason_bin) == 1 and mason_bin or "mmdc"
-        
-        if vim.fn.executable(mmdc_cmd) == 0 then
-          vim.notify("Installation de mermaid-cli via npm...", vim.log.levels.INFO)
-          vim.fn.system("sudo npm install -g @mermaid-js/mermaid-cli")
-          if vim.fn.executable("mmdc") == 0 then
-            vim.notify("Échec de l'installation de mermaid-cli", vim.log.levels.ERROR)
-            return
-          end
-          mmdc_cmd = "mmdc"
+        local mmdc = vim.fn.executable("mmdc") == 1 and "mmdc" or nil
+        if not mmdc then
+          vim.notify("mermaid-cli non trouvé, installation...", vim.log.levels.INFO)
+          require("utils.dependencies").ensure_all()
+          return
         end
 
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
