@@ -9,8 +9,8 @@ return {
   {
     "folke/which-key.nvim",
     opts = {
-      defaults = {
-        ["<leader>m"] = { name = "Mermaid" },
+      spec = {
+        { "<leader>m", { name = "Mermaid", _ = "which_key_ignore" } },
       },
     },
   },
@@ -18,19 +18,20 @@ return {
     "nvim-lua/plenary.nvim",
     config = function()
       local function preview_mermaid()
-        -- Extraire le bloc Mermaid sous le curseur
+        -- Trouver le bloc Mermaid sous le curseur
+        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
         local in_mermaid = false
         local start_line = 0
         local diagram_lines = {}
-        local cursor_pos = vim.api.nvim_win_get_cursor(0)
-
+        
         for i, line in ipairs(lines) do
           if line:match("^```mermaid") then
             in_mermaid = true
             start_line = i
           elseif line:match("^```$") and in_mermaid then
-            if cursor_pos[1] >= start_line and cursor_pos[1] <= i then
+            -- Vérifier si le curseur est dans ce bloc
+            if cursor_line >= start_line and cursor_line <= i then
               break
             end
             in_mermaid = false
@@ -46,22 +47,25 @@ return {
         end
 
         -- Créer les fichiers temporaires
-        local tmp_dir = vim.fn.expand("$HOME/.cache/nvim/mermaid")
-        vim.fn.mkdir(tmp_dir, "p")
-        local input_file = tmp_dir .. "/diagram.mmd"
-        local output_file = tmp_dir .. "/diagram.png"
+        local cache_dir = vim.fn.expand("~/.cache/nvim/mermaid")
+        vim.fn.mkdir(cache_dir, "p")
+        local input_file = cache_dir .. "/temp.mmd"
+        local output_file = cache_dir .. "/temp.png"
 
-        -- Sauvegarder le diagramme
+        -- Écrire le diagramme
         local f = io.open(input_file, "w")
-        if not f then return end
+        if not f then
+          vim.notify("Erreur lors de la création du fichier temporaire", vim.log.levels.ERROR)
+          return
+        end
         f:write(table.concat(diagram_lines, "\n"))
         f:close()
 
-        -- Créer une fenêtre flottante
+        -- Créer le buffer et la fenêtre
+        local buf = vim.api.nvim_create_buf(false, true)
         local width = math.floor(vim.o.columns * 0.8)
         local height = math.floor(vim.o.lines * 0.8)
-        local buf = vim.api.nvim_create_buf(false, true)
-        local opts = {
+        local win = vim.api.nvim_open_win(buf, true, {
           relative = "editor",
           width = width,
           height = height,
@@ -69,32 +73,31 @@ return {
           row = math.floor((vim.o.lines - height) / 2),
           style = "minimal",
           border = "rounded"
-        }
+        })
 
-        local win = vim.api.nvim_open_win(buf, true, opts)
-        vim.keymap.set("n", "q", ":q<CR>", { buffer = buf, silent = true })
-        
-        -- Générer le diagramme et l'afficher
+        -- Configurer la fermeture
+        vim.keymap.set("n", "q", function()
+          vim.api.nvim_win_close(win, true)
+          os.remove(input_file)
+          os.remove(output_file)
+        end, { buffer = buf, silent = true })
+
+        -- Générer et afficher le diagramme
         vim.fn.jobstart({"mmdc", "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             if code == 0 then
               vim.fn.termopen(string.format(
-                "kitty +kitten icat --clear --transfer-mode=file --scale-up --place=%dx%d@%dx%d %s",
-                width, height, 0, 0, output_file
-              ), {
-                on_exit = function()
-                  os.remove(input_file)
-                  os.remove(output_file)
-                end
-              })
+                "kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s",
+                width, height, output_file
+              ))
             else
-              vim.notify("Erreur lors de la génération du diagramme", vim.log.levels.ERROR)
+              vim.notify("Erreur: Installation de mermaid-cli requise\nnpm install -g @mermaid-js/mermaid-cli", vim.log.levels.ERROR)
             end
           end
         })
       end
 
-      vim.keymap.set("n", "<leader>mp", preview_mermaid, { desc = "Aperçu Mermaid (Kitty)" })
+      vim.keymap.set("n", "<leader>mp", preview_mermaid, { desc = "Aperçu Mermaid" })
     end,
   }
 }

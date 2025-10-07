@@ -1,8 +1,10 @@
 return {
   {
     "jalvesaq/zotcite",
-    enabled = false, -- Désactivé jusqu'à l'installation de python3
-  },
+    build = function()
+      -- Installation automatique des dépendances Python
+      vim.fn.system("sudo apt-get update && sudo apt-get install -y python3 python3-pip && pip3 install pybtex")
+    end,
   {
     "jalvesaq/zotcite",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
