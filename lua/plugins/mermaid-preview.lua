@@ -31,20 +31,54 @@ return {
     end,
     keys = {
       { "<leader>mp", function()
-        local diagram = vim.fn.expand("%:p")
+        -- Lire le contenu du buffer actuel
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local in_mermaid = false
+        local diagram_lines = {}
+        
+        -- Extraire le diagramme Mermaid
+        for _, line in ipairs(lines) do
+          if line:match("^```mermaid") then
+            in_mermaid = true
+          elseif line:match("^```$") and in_mermaid then
+            in_mermaid = false
+          elseif in_mermaid then
+            table.insert(diagram_lines, line)
+          end
+        end
+        
+        if #diagram_lines == 0 then
+          vim.notify("Aucun diagramme Mermaid trouvé", vim.log.levels.ERROR)
+          return
+        end
+        
+        -- Créer un buffer temporaire pour le résultat
         local temp_buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_command("vsplit")
         vim.api.nvim_win_set_buf(0, temp_buf)
         vim.api.nvim_buf_set_option(temp_buf, "buftype", "nofile")
         vim.api.nvim_buf_set_option(temp_buf, "bufhidden", "wipe")
-        vim.fn.jobstart({"curl", "-s", "--data-urlencode", "diagram@" .. diagram, "https://kroki.io/mermaid/svg"}, {
-          stdout_buffered = true,
-          on_stdout = function(_, data)
-            if data then
-              vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, data)
+        
+        -- Écrire le diagramme dans un fichier temporaire
+        local tmp_file = os.tmpname()
+        local f = io.open(tmp_file, "w")
+        if f then
+          f:write(table.concat(diagram_lines, "\n"))
+          f:close()
+          
+          -- Envoyer à kroki.io
+          vim.fn.jobstart({"curl", "-s", "--data-urlencode", "diagram@" .. tmp_file, "https://kroki.io/mermaid/svg"}, {
+            stdout_buffered = true,
+            on_stdout = function(_, data)
+              if data then
+                vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, data)
+              end
+            end,
+            on_exit = function()
+              os.remove(tmp_file)
             end
-          end
-        })
+          })
+        end
       end, desc = "Aperçu Mermaid (Buffer)" },
     },
   }
