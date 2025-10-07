@@ -108,7 +108,7 @@ return {
           os.remove(output_file)
         end, { buffer = buf, silent = true })
 
-        vim.fn.jobstart({mmdc_cmd, "-i", input_file, "-o", output_file}, {
+        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             if code == 0 then
               vim.fn.termopen(string.format(

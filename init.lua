@@ -1,3 +1,4 @@
+vim.g.python3_host_prog = "/usr/bin/python3"
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
 
 -- Vérification et installation des dépendances au démarrage
