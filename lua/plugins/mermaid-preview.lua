@@ -37,8 +37,8 @@ return {
       vim.o.timeoutlen = 300
     end,
     opts = {
-      defaults = {
-        ["<leader>m"] = { name = "+mermaid" },
+      spec = {
+        { "<leader>m", group = "mermaid" },
       },
     },
   },
