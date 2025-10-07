@@ -1,5 +1,12 @@
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
--- vim.o.servername = "127.0.0.1:8000" -- Explicitly set server name
+
+-- Vérification et installation des dépendances au démarrage
+vim.api.nvim_create_autocmd("VimEnter", {
+  callback = function()
+    require("utils.dependencies").ensure_all()
+  end,
+})
+
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")
 vim.env.PATH = vim.env.PATH .. ":/home/dv/.nvm/versions/node/v24.5.0/bin"
