@@ -98,7 +98,7 @@ return {
             if code == 0 then
             if vim.env.TERM == "xterm-kitty" then
               vim.fn.termopen(string.format(
-                "kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep infinity",
+                "KITTY_WINDOW_ID=$KITTY_WINDOW_ID /usr/bin/kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep infinity",
                 width, height, output_file
               ))
             else
