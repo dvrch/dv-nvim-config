@@ -1,12 +1,6 @@
 vim.g.python3_host_prog = "/usr/bin/python3"
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
 
--- Vérification et installation des dépendances au démarrage
-vim.api.nvim_create_autocmd("VimEnter", {
-  callback = function()
-    require("utils.dependencies").ensure_all()
-  end,
-})
 
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")
