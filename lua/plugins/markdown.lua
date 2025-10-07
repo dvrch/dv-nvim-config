@@ -1,13 +1,13 @@
 return {
   {
     "iamcco/markdown-preview.nvim",
-    enabled = false, -- Désactivation explicite
+    enabled = false,
   },
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
       opts.ensure_installed = opts.ensure_installed or {}
-      vim.list_extend(opts.ensure_installed, { "markdown", "mermaid" })
+      vim.list_extend(opts.ensure_installed, { "markdown", "markdown_inline", "mermaid" })
     end,
   },
   {
@@ -21,21 +21,26 @@ return {
   {
     "nvim-lua/plenary.nvim",
     config = function()
-      -- Configuration de la fonction de prévisualisation
       local function preview_mermaid()
-        -- Trouver le bloc Mermaid sous le curseur
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+        local mmdc = vim.fn.expand("$HOME/.local/share/nvim/mason/bin/mmdc")
+        if vim.fn.filereadable(mmdc) == 0 then
+          vim.notify("Installation de mermaid-cli via Mason...", vim.log.levels.INFO)
+          vim.cmd("MasonInstall mermaid-cli")
+          return
+        end
+
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
         local in_mermaid = false
         local start_line = 0
         local diagram_lines = {}
+        local cursor_pos = vim.api.nvim_win_get_cursor(0)[1]
 
         for i, line in ipairs(lines) do
           if line:match("^```mermaid") then
             in_mermaid = true
             start_line = i
           elseif line:match("^```$") and in_mermaid then
-            if cursor_line >= start_line and cursor_line <= i then
+            if cursor_pos >= start_line and cursor_pos <= i then
               break
             end
             in_mermaid = false
@@ -50,22 +55,16 @@ return {
           return
         end
 
-        -- Créer les fichiers temporaires
         local cache_dir = vim.fn.expand("~/.cache/nvim/mermaid")
         vim.fn.mkdir(cache_dir, "p")
-        local input_file = cache_dir .. "/temp.mmd"
-        local output_file = cache_dir .. "/temp.png"
+        local input_file = cache_dir .. "/diagram.mmd"
+        local output_file = cache_dir .. "/diagram.png"
 
-        -- Écrire le diagramme
         local f = io.open(input_file, "w")
-        if not f then
-          vim.notify("Erreur lors de la création du fichier temporaire", vim.log.levels.ERROR)
-          return
-        end
+        if not f then return end
         f:write(table.concat(diagram_lines, "\n"))
         f:close()
 
-        -- Créer le buffer et la fenêtre
         local buf = vim.api.nvim_create_buf(false, true)
         local width = math.floor(vim.o.columns * 0.8)
         local height = math.floor(vim.o.lines * 0.8)
@@ -76,45 +75,30 @@ return {
           col = math.floor((vim.o.columns - width) / 2),
           row = math.floor((vim.o.lines - height) / 2),
           style = "minimal",
-          border = "rounded",
+          border = "rounded"
         })
 
-        -- Configurer la fermeture
-        vim.keymap.set(
-          "n",
-          "q",
-          function()
-            vim.api.nvim_win_close(win, true)
-            os.remove(input_file)
-            os.remove(output_file)
-          end,
-          { buffer = buf, silent = true }
-        )
+        vim.keymap.set("n", "q", function()
+          vim.api.nvim_win_close(win, true)
+          os.remove(input_file)
+          os.remove(output_file)
+        end, { buffer = buf, silent = true })
 
-        -- Générer et afficher le diagramme
-        vim.fn.jobstart(
-          { "mmdc", "-i", input_file, "-o", output_file },
-          {
-            on_exit = function(_, code)
-              if code == 0 then
-                vim.fn.termopen(
-                  string.format(
-                    "kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep 999999",
-                    width,
-                    height,
-                    output_file
-                  )
-                )
-              else
-                vim.notify("Erreur: Installation de mermaid-cli requise\nnpm install -g @mermaid-js/mermaid-cli", vim.log.levels.ERROR)
-              end
-            end,
-          }
-        )
+        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
+          on_exit = function(_, code)
+            if code == 0 then
+              vim.fn.termopen(string.format(
+                "kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep infinity",
+                width, height, output_file
+              ))
+            else
+              vim.notify("Erreur lors de la génération du diagramme. Vérifiez l'installation de mermaid-cli.", vim.log.levels.ERROR)
+            end
+          end
+        })
       end
 
-      -- Mapper la touche
-      vim.keymap.set("n", "<leader>mp", preview_mermaid, { desc = "Aperçu Mermaid (Kitty)" })
+      vim.keymap.set("n", "<leader>mp", preview_mermaid, { desc = "Aperçu Mermaid" })
     end,
-  },
+  }
 }
