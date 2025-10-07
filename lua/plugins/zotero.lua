@@ -1,6 +1,10 @@
 return {
   {
     "jalvesaq/zotcite",
+    enabled = false, -- Désactivé jusqu'à l'installation de python3
+  },
+  {
+    "jalvesaq/zotcite",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
       vim.g.zotero_sql_path = "/home/dv/snap/zotero-snap/common/Zotero/zotero.sqlite" -- Add this back
