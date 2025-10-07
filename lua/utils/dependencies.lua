@@ -1,36 +1,18 @@
 local M = {}
 
-local function ensure_treesitter_installed()
-  -- Attendre que treesitter soit chargé
-  local ok, _ = pcall(require, "nvim-treesitter")
-  if not ok then
-    vim.notify("Treesitter non disponible", vim.log.levels.WARN)
-    return
-  end
-  
-  vim.cmd("TSInstall markdown markdown_inline mermaid")
-end
-
-local function ensure_system_deps()
-  -- Installation de mermaid-cli via npm
-  local mmdc = vim.fn.executable("mmdc") == 1
-  if not mmdc then
-    vim.notify("Installation de mermaid-cli via npm...", vim.log.levels.INFO)
-    vim.fn.system("sudo npm install -g @mermaid-js/mermaid-cli")
-  end
-
-  -- Installation de python3
-  if vim.fn.executable("python3") == 0 then
-    vim.notify("Installation de python3...", vim.log.levels.INFO)
-    vim.fn.system("sudo apt-get update && sudo apt-get install -y python3 python3-pip")
-    vim.fn.system("pip3 install --user pybtex")
-  end
-end
-
-M.ensure_all = function()
+function M.ensure_all()
   vim.schedule(function()
-    ensure_system_deps()
-    ensure_treesitter_installed()
+    local mason_ok, mason = pcall(require, "mason-registry")
+    if not mason_ok then
+      vim.notify("Mason n'est pas disponible.", vim.log.levels.WARN)
+      return
+    end
+
+    local mmdc = mason:get_package("mmdc")
+    if not mmdc:is_installed() then
+      vim.notify("Installation de mmdc (pour Mermaid)...", vim.log.levels.INFO)
+      mmdc:install() 
+    end
   end)
 end
 
