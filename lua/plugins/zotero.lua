@@ -5,11 +5,9 @@ return {
       -- Installation automatique des dépendances Python
       vim.fn.system("sudo apt-get update && sudo apt-get install -y python3 python3-pip && pip3 install pybtex")
     end,
-  {
-    "jalvesaq/zotcite",
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
-      vim.g.zotero_sql_path = "/home/dv/snap/zotero-snap/common/Zotero/zotero.sqlite" -- Add this back
+      vim.g.zotero_sql_path = "/home/dv/snap/zotero-snap/common/Zotero/zotero.sqlite"
       vim.g.zotcite_conceallevel = 2
       
       -- Fonction directe pour ouvrir Zotero
@@ -31,5 +29,5 @@ return {
         end
       end, { desc = "Insert Citation" })
     end,
-  },
+  }
 }
