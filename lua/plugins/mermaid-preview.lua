@@ -9,14 +9,6 @@ return {
     },
   },
   {
-    "edluffy/hologram.nvim",
-    config = function()
-      require('hologram').setup{
-        auto_display = true
-      }
-    end
-  },
-  {
     "iamcco/markdown-preview.nvim",
     cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
     ft = { "markdown" },
@@ -38,7 +30,22 @@ return {
       vim.g.mkdp_preview_options.disable_sync_scroll = 1
     end,
     keys = {
-      { "<leader>mp", "<cmd>split | terminal mmdc -i % -o %.png && hologram display %.png<cr>", desc = "Aperçu Mermaid (Kitty)" },
+      { "<leader>mp", function()
+        local diagram = vim.fn.expand("%:p")
+        local temp_buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_command("vsplit")
+        vim.api.nvim_win_set_buf(0, temp_buf)
+        vim.api.nvim_buf_set_option(temp_buf, "buftype", "nofile")
+        vim.api.nvim_buf_set_option(temp_buf, "bufhidden", "wipe")
+        vim.fn.jobstart({"curl", "-s", "--data-urlencode", "diagram@" .. diagram, "https://kroki.io/mermaid/svg"}, {
+          stdout_buffered = true,
+          on_stdout = function(_, data)
+            if data then
+              vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, data)
+            end
+          end
+        })
+      end, desc = "Aperçu Mermaid (Buffer)" },
     },
   }
 }
