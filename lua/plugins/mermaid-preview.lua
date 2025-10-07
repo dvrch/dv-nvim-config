@@ -1,20 +1,5 @@
 return {
-  {
-    "nvim-treesitter/nvim-treesitter",
-    event = { "BufReadPost", "BufNewFile" },
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
-    },
-    opts = {
-      highlight = { enable = true },
-      indent = { enable = true },
-      ensure_installed = {
-        "markdown",
-        "markdown_inline",
-        "mermaid",
-      },
-    },
-  },
+
   {
     "mason-org/mason.nvim",
     cmd = "Mason",
@@ -111,10 +96,14 @@ return {
         vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             if code == 0 then
+            if vim.env.TERM == "xterm-kitty" then
               vim.fn.termopen(string.format(
                 "kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep infinity",
                 width, height, output_file
               ))
+            else
+              vim.notify("Aperçu non supporté. Veuillez utiliser le terminal Kitty.", vim.log.levels.WARN)
+            end
             else
               vim.notify("Erreur lors de la génération du diagramme", vim.log.levels.ERROR)
             end
