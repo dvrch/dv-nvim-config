@@ -97,20 +97,29 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-          -- Use 'bash -c' to chain commands: icat, then cleanup, then start a new shell.
-          local icat_cleanup_shell_cmd = string.format(
-              "bash -c 'kitty +kitten icat %s; rm %s %s; exec zsh'",
+          -- Close the loading window, we are drawing directly over the UI now.
+          vim.api.nvim_win_close(win, true)
+
+          -- Calculate position for the image (center of the screen)
+          local screen_w = vim.o.columns
+          local screen_h = vim.o.lines
+          local img_w = math.floor(screen_w * 0.8)
+          local img_h = math.floor(screen_h * 0.8)
+          local col = math.floor((screen_w - img_w) / 2)
+          local row = math.floor((screen_h - img_h) / 2)
+
+          -- Display the image using icat --place, then clean up the temp files.
+          -- The image is drawn directly on the terminal, not in a window.
+          -- It will disappear on the next screen redraw.
+          local cmd = string.format(
+              "bash -c 'kitty +kitten icat --place %dx%d@%dx%d %s && rm %s %s'",
+              img_w, img_h, col, row,
               output_file,
               input_file,
               output_file
           )
 
-          -- We removed '++close' to prevent the zsh error. The user will close the window manually.
-          local term_cmd = "terminal " .. icat_cleanup_shell_cmd
-
-          -- By setting the current window to our float, the terminal will open inside it.
-          vim.api.nvim_set_current_win(win)
-          vim.cmd(term_cmd)
+          vim.fn.jobstart(cmd)
         else
           vim.api.nvim_win_close(win, true)
           vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
