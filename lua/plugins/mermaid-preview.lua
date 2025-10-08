@@ -81,36 +81,27 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-                -- 1. Define the command to run in the terminal
-                local viewer_cmd = string.format(
-                    "bash -c 'TERM=xterm-kitty /home/kd/.cargo/bin/viu %s; exec zsh'",
-                    output_file
-                )
-
-                -- 2. Prepare the window (reuse right or vsplit)
+                local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
                 local original_win = vim.api.nvim_get_current_win()
+
+                -- Check if a window exists to the right, otherwise create a vsplit
                 if vim.fn.winnr() < vim.fn.winnr('$') then
                   vim.cmd('wincmd l')
                 else
                   vim.cmd('vsplit')
                 end
 
-                -- 3. Run the viewer command in the new window
-                vim.cmd('terminal ' .. viewer_cmd)
+                -- Open the PNG file directly in the buffer
+                vim.cmd('edit ' .. png_path)
 
-                -- 4. Move focus back to the original window
+                -- Move focus back to the original window
                 vim.api.nvim_set_current_win(original_win)
-
-                -- 5. Set a timer to delete the temp files
-                vim.defer_fn(function()
-                  pcall(os.remove, input_file)
-                  pcall(os.remove, output_file)
-                end, 17000) -- 17 seconds
 
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
-                pcall(os.remove, input_file) -- Also clean up on failure
               end
+              -- Clean up the temporary .mmd file
+              pcall(os.remove, input_file)
             end)
           end,
         })
