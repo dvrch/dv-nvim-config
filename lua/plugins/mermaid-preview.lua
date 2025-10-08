@@ -83,12 +83,15 @@ return {
               if code == 0 then
                 local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
                 local original_win = vim.api.nvim_get_current_win()
+                local png_win_id = nil
 
                 -- Check if a window exists to the right, otherwise create a vsplit
                 if vim.fn.winnr() < vim.fn.winnr('$') then
                   vim.cmd('wincmd l')
+                  png_win_id = vim.api.nvim_get_current_win()
                 else
                   vim.cmd('vsplit')
+                  png_win_id = vim.api.nvim_get_current_win()
                 end
 
                 -- Open the PNG file directly in the buffer
@@ -101,6 +104,15 @@ return {
                 vim.defer_fn(function()
                   pcall(os.remove, png_path) -- Safely remove the png
                 end, 20000) -- 20 seconds
+
+                -- Start a timer to close the preview window
+                if png_win_id then
+                  vim.defer_fn(function()
+                    if vim.api.nvim_win_is_valid(png_win_id) then
+                      vim.api.nvim_win_close(png_win_id, false)
+                    end
+                  end, 25000) -- 25 seconds
+                end
 
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
