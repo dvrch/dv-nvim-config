@@ -97,16 +97,19 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-          -- DEBUG: Run viu directly without cleanup or auto-close to isolate the error
-          local viu_cmd = string.format(
-              "/home/kd/.cargo/bin/viu -w %d -h %d %s",
-              width - 2,
-              height - 2,
+          -- Use Kitty's native 'icat' for high-resolution images.
+          -- Wrap in 'sh -c' to chain commands: display the image, then remove temp files.
+          local icat_and_cleanup_cmd = string.format(
+              "sh -c 'kitty +kitten icat %s; rm %s %s'",
+              output_file,
+              input_file,
               output_file
           )
-          local term_cmd = "terminal " .. viu_cmd
 
-          -- By setting the current window to our float, the terminal will open inside it
+          -- Use 'terminal ++close' to run the command in a terminal that closes on exit.
+          local term_cmd = "terminal ++close " .. icat_and_cleanup_cmd
+
+          -- By setting the current window to our float, the terminal will open inside it.
           vim.api.nvim_set_current_win(win)
           vim.cmd(term_cmd)
         else
