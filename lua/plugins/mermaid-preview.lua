@@ -87,6 +87,37 @@ return {
 
                 -- Check if a window exists to the right
                 if vim.fn.winnr() < vim.fn.winnr('
+                  vim.cmd('wincmd l')
+                  png_win_id = vim.api.nvim_get_current_win()
+                  vim.cmd('edit ' .. png_path)
+                else
+                  vim.cmd('vsplit ' .. png_path)
+                  png_win_id = vim.api.nvim_get_current_win()
+                end
+
+                -- Move focus back to the original window
+                vim.api.nvim_set_current_win(original_win)
+
+                -- Start a timer to close the PNG window and delete the file
+                if png_win_id then
+                  vim.defer_fn(function()
+                    if vim.api.nvim_win_is_valid(png_win_id) then
+                      vim.api.nvim_win_close(png_win_id, true) -- Force close
+                      os.remove(png_path)
+                    end
+                  end, 7000) -- 7 seconds
+                end
+              else
+                vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
+              end
+              os.remove(input_file)
+            end)
+          end,
+        })
+      end
+
+      vim.keymap.set("n", "<leader>mp", preview_mermaid, { desc = "Aperçu Mermaid" })
+    end,
   }
 }) then
                   vim.cmd('wincmd l')
