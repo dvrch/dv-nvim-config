@@ -81,39 +81,49 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-                local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
-                local original_win = vim.api.nvim_get_current_win()
-                local png_win_id = nil
-
-                -- Check if a window exists to the right, otherwise create a vsplit
-                if vim.fn.winnr() < vim.fn.winnr('$') then
-                  vim.cmd('wincmd l')
-                  png_win_id = vim.api.nvim_get_current_win()
-                else
-                  vim.cmd('vsplit')
-                  png_win_id = vim.api.nvim_get_current_win()
-                end
-
-                -- Open the PNG file directly in the buffer
-                vim.cmd('edit ' .. png_path)
-
-                -- Move focus back to the original window
-                vim.api.nvim_set_current_win(original_win)
-
-                -- Start a timer to delete the PNG file
+                -- Wait 4 seconds before trying to display, to avoid race conditions with the filesystem.
                 vim.defer_fn(function()
-                  pcall(os.remove, png_path) -- Safely remove the png
-                end, 20000) -- 20 seconds
+                  local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
+                  if vim.fn.filereadable(png_path) == 0 then
+                    vim.notify("Erreur: Fichier PNG non trouvé après la génération.", vim.log.levels.ERROR)
+                    return
+                  end
 
-                -- Start a timer to close the preview window
-                if png_win_id then
+                  -- Forcefully wipe any existing buffer for this file to prevent caching
+                  vim.cmd('silent! wipebuf! ' .. png_path)
+
+                  local original_win = vim.api.nvim_get_current_win()
+                  local png_win_id = nil
+
+                  -- Check if a window exists to the right, otherwise create a vsplit
+                  if vim.fn.winnr() < vim.fn.winnr('$') then
+                    vim.cmd('wincmd l')
+                    png_win_id = vim.api.nvim_get_current_win()
+                  else
+                    vim.cmd('vsplit')
+                    png_win_id = vim.api.nvim_get_current_win()
+                  end
+
+                  -- Open the PNG file with '!' to force a re-read from disk
+                  vim.cmd('edit! ' .. png_path)
+
+                  -- Move focus back to the original window
+                  vim.api.nvim_set_current_win(original_win)
+
+                  -- Start a timer to delete the PNG file
                   vim.defer_fn(function()
-                    if vim.api.nvim_win_is_valid(png_win_id) then
-                      vim.api.nvim_win_close(png_win_id, false)
-                    end
-                  end, 25000) -- 25 seconds
-                end
+                    pcall(os.remove, png_path) -- Safely remove the png
+                  end, 20000) -- 20 seconds
 
+                  -- Start a timer to close the preview window
+                  if png_win_id then
+                    vim.defer_fn(function()
+                      if vim.api.nvim_win_is_valid(png_win_id) then
+                        vim.api.nvim_win_close(png_win_id, false)
+                      end
+                    end, 25000) -- 25 seconds
+                  end
+                end, 4000) -- 4 second delay
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
               end
