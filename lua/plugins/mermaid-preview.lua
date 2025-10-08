@@ -108,18 +108,24 @@ return {
           local col = math.floor((screen_w - img_w) / 2)
           local row = math.floor((screen_h - img_h) / 2)
 
-          -- Display the image using icat --place, then clean up the temp files.
+          -- Display the image using icat --place.
           -- The image is drawn directly on the terminal, not in a window.
           -- It will disappear on the next screen redraw.
-          local cmd = string.format(
-              "bash -c 'kitty +kitten icat --place %dx%d@%dx%d %s && rm %s %s'",
-              img_w, img_h, col, row,
-              output_file,
-              input_file,
-              output_file
+          local icat_cmd = string.format(
+              "kitty +kitten icat --place %dx%d@%dx%d %s",
+              img_w, img_h, col, row, output_file
           )
 
-          vim.fn.jobstart(cmd)
+          -- Run icat and set up a callback to clean up the files when it's done.
+          vim.fn.jobstart(icat_cmd, {
+            on_exit = function()
+              -- Schedule cleanup to run on the main Neovim loop
+              vim.schedule(function()
+                os.remove(input_file)
+                os.remove(output_file)
+              end)
+            end,
+          })
         else
           vim.api.nvim_win_close(win, true)
           vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
