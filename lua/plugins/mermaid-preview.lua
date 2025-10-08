@@ -64,10 +64,13 @@ return {
           return
         end
 
+        local current_dir = vim.fn.expand('%:p:h')
+        local output_file = current_dir .. '/mermaid-preview.png'
+
+        -- Keep the temporary markdown file in the cache
         local cache_dir = vim.fn.expand("~/.cache/nvim/mermaid")
         vim.fn.mkdir(cache_dir, "p")
         local input_file = cache_dir .. "/diagram.mmd"
-        local output_file = cache_dir .. "/diagram.png"
 
         local f = io.open(input_file, "w")
         if not f then return end
@@ -96,29 +99,25 @@ return {
         vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             vim.schedule(function()
+              -- Close the "Loading..." window regardless of outcome
+              vim.api.nvim_win_close(win, true)
+
               if code == 0 then
-                -- Back to the floating terminal approach, as a /dev/tty is required.
-                -- The 'win' and 'buf' for the loading message already exist.
-
-                -- Command to run: set TERM, run viu, cleanup, then start a shell.
-                local viu_cleanup_shell_cmd = string.format(
-                    "bash -c 'TERM=xterm-kitty /home/kd/.cargo/bin/viu %s; rm %s %s; exec zsh'",
-                    output_file,
-                    input_file,
-                    output_file
-                )
-
-                -- We are not using '++close'. The user will close the window manually.
-                local term_cmd = "terminal " .. viu_cleanup_shell_cmd
-
-                -- Set the context to our floating window and run the command.
-                vim.api.nvim_set_current_win(win)
-                vim.cmd(term_cmd)
-
+                -- On success, open Telescope pre-filled with the filename
+                pcall(function()
+                  require('telescope.builtin').find_files({
+                    -- search in the current file's directory
+                    cwd = vim.fn.expand('%:p:h'),
+                    -- pre-fill the search with the generated file's name
+                    default_text = 'mermaid-preview.png'
+                  })
+                end)
               else
-                vim.api.nvim_win_close(win, true)
                 vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
               end
+              -- The temp .mmd file should still be cleaned up
+              os.remove(input_file)
+              -- The PNG file is now the goal, so we DON'T remove it.
             end)
           end,
         })
