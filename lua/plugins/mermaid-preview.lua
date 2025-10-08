@@ -97,14 +97,13 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-                -- Run viu and capture its output to place it in the floating window buffer
-                vim.fn.jobstart({"/home/kd/.cargo/bin/viu", "-w", tostring(width - 2), "-h", tostring(height - 2), output_file}, {
-                  on_stdout = function(_, data)
-                    if data then
-                      vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-                    end
-                  end,
-                  on_exit = function()
+                          -- Run viu and capture its output to place it in the floating window buffer
+                          vim.fn.jobstart({"/home/kd/.cargo/bin/viu", "-b", "-w", tostring(width - 2), "-h", tostring(height - 2), output_file}, {
+                            on_stdout = function(_, data)
+                              if data then
+                                vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+                              end
+                            end,                  on_exit = function()
                     os.remove(input_file)
                     os.remove(output_file)
                   end,
