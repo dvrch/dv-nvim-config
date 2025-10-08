@@ -17,7 +17,7 @@ vim.keymap.set('i', 'jj', '<Esc>', {
 })
 
 -- Fait en sorte que taper 'jj' rapidement quitte le mode Terminal
-vim.keymap.set('t', 'jj', '<C-\><C-n>', {
+vim.keymap.set('t', 'jj', '<C-\\><C-n>', {
   noremap = true,
   silent = true
 })
