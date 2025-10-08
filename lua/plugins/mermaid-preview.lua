@@ -93,7 +93,7 @@ return {
           os.remove(output_file)
         end, { buffer = buf, silent = true })
 
-        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file, "-b", "transparent"}, {
+        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
