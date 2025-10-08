@@ -97,21 +97,26 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-                          -- Run viu and capture its output to place it in the floating window buffer
-                          vim.fn.jobstart({"/home/kd/.cargo/bin/viu", "-b", "-w", tostring(width - 2), "-h", tostring(height - 2), output_file}, {
-                            on_stdout = function(_, data)
-                              if data then
-                                vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
-                              end
-                            end,                  on_exit = function()
-                    os.remove(input_file)
-                    os.remove(output_file)
-                  end,
-                })
-              else
-                vim.api.nvim_win_close(win, true)
-                vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
-              end
+          -- Create a shell command that runs viu and then cleans up the temporary files
+          local viu_and_cleanup_cmd = string.format(
+              "sh -c '/home/kd/.cargo/bin/viu -w %d -h %d %s; rm %s %s'",
+              width - 2,
+              height - 2,
+              output_file,
+              input_file,
+              output_file
+          )
+
+          -- Command to open a terminal in Neovim that closes automatically and runs our command
+          local term_cmd = "terminal ++close " .. viu_and_cleanup_cmd
+
+          -- By setting the current window to our float, the terminal will open inside it
+          vim.api.nvim_set_current_win(win)
+          vim.cmd(term_cmd)
+        else
+          vim.api.nvim_win_close(win, true)
+          vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
+        end
             end)
           end,
         })
