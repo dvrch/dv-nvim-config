@@ -97,39 +97,28 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-          -- Close the loading window, we are drawing directly over the UI now.
-          vim.api.nvim_win_close(win, true)
+                -- Back to the floating terminal approach, as a /dev/tty is required.
+                -- The 'win' and 'buf' for the loading message already exist.
 
-          -- Calculate position for the image (center of the screen)
-          local screen_w = vim.o.columns
-          local screen_h = vim.o.lines
-          local img_w = math.floor(screen_w * 0.8)
-          local img_h = math.floor(screen_h * 0.8)
-          local col = math.floor((screen_w - img_w) / 2)
-          local row = math.floor((screen_h - img_h) / 2)
+                -- Command to run: set TERM, run viu, cleanup, then start a shell.
+                local viu_cleanup_shell_cmd = string.format(
+                    "bash -c 'TERM=xterm-kitty /home/kd/.cargo/bin/viu %s; rm %s %s; exec zsh'",
+                    output_file,
+                    input_file,
+                    output_file
+                )
 
-          -- Display the image using icat --place.
-          -- The image is drawn directly on the terminal, not in a window.
-          -- It will disappear on the next screen redraw.
-          local icat_cmd = string.format(
-              "kitty +kitten icat --place %dx%d@%dx%d %s",
-              img_w, img_h, col, row, output_file
-          )
+                -- We are not using '++close'. The user will close the window manually.
+                local term_cmd = "terminal " .. viu_cleanup_shell_cmd
 
-          -- Run icat and set up a callback to clean up the files when it's done.
-          vim.fn.jobstart(icat_cmd, {
-            on_exit = function()
-              -- Schedule cleanup to run on the main Neovim loop
-              vim.schedule(function()
-                os.remove(input_file)
-                os.remove(output_file)
-              end)
-            end,
-          })
-        else
-          vim.api.nvim_win_close(win, true)
-          vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
-        end
+                -- Set the context to our floating window and run the command.
+                vim.api.nvim_set_current_win(win)
+                vim.cmd(term_cmd)
+
+              else
+                vim.api.nvim_win_close(win, true)
+                vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
+              end
             end)
           end,
         })
