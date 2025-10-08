@@ -96,16 +96,25 @@ return {
         vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file, "-b", "transparent"}, {
           on_exit = function(_, code)
             vim.schedule(function()
-              vim.api.nvim_win_close(win, true)
               if code == 0 then
-            -- Use viu to display the image in a new terminal buffer
-            local viu_cmd = string.format("/home/kd/.cargo/bin/viu -w %d -h %d %s", width, height, output_file)
-            vim.fn.termopen(viu_cmd)
+                -- Run viu and capture its output to place it in the floating window buffer
+                vim.fn.jobstart({"/home/kd/.cargo/bin/viu", "-w", tostring(width - 2), "-h", tostring(height - 2), output_file}, {
+                  on_stdout = function(_, data)
+                    if data then
+                      vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+                    end
+                  end,
+                  on_exit = function()
+                    os.remove(input_file)
+                    os.remove(output_file)
+                  end,
+                })
               else
+                vim.api.nvim_win_close(win, true)
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
               end
             end)
-          end
+          end,
         })
       end
 
