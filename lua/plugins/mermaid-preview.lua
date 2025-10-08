@@ -66,8 +66,6 @@ return {
 
         local current_dir = vim.fn.expand('%:p:h')
         local output_file = current_dir .. '/mermaid-preview.png'
-
-        -- Keep the temporary markdown file in the cache
         local cache_dir = vim.fn.expand("~/.cache/nvim/mermaid")
         vim.fn.mkdir(cache_dir, "p")
         local input_file = cache_dir .. "/diagram.mmd"
@@ -77,41 +75,44 @@ return {
         f:write(table.concat(diagram_lines, "\n"))
         f:close()
 
-        local buf = vim.api.nvim_create_buf(false, true)
-        local width = math.floor(vim.o.columns * 0.8)
-        local height = math.floor(vim.o.lines * 0.8)
-        local win = vim.api.nvim_open_win(buf, true, {
-          relative = "editor",
-          width = width,
-          height = height,
-          col = math.floor((vim.o.columns - width) / 2),
-          row = math.floor((vim.o.lines - height) / 2),
-          style = "minimal",
-          border = "rounded"
-        })
-
-        vim.keymap.set("n", "q", function()
-          vim.api.nvim_win_close(win, true)
-          os.remove(input_file)
-          os.remove(output_file)
-        end, { buffer = buf, silent = true })
+        vim.notify("Génération de l'aperçu Mermaid...", vim.log.levels.INFO)
 
         vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
           on_exit = function(_, code)
             vim.schedule(function()
-              -- Close the "Loading..." window regardless of outcome
-              vim.api.nvim_win_close(win, true)
-
               if code == 0 then
-                -- On success, open the generated PNG in a new vertical split
                 local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
-                vim.cmd('vsplit ' .. png_path)
+                local original_win = vim.api.nvim_get_current_win()
+                local png_win_id = nil
+
+                -- Check if a window exists to the right
+                if vim.fn.winnr() < vim.fn.winnr('
+  }
+}) then
+                  vim.cmd('wincmd l')
+                  png_win_id = vim.api.nvim_get_current_win()
+                  vim.cmd('edit ' .. png_path)
+                else
+                  vim.cmd('vsplit ' .. png_path)
+                  png_win_id = vim.api.nvim_get_current_win()
+                end
+
+                -- Move focus back to the original window
+                vim.api.nvim_set_current_win(original_win)
+
+                -- Start a timer to close the PNG window and delete the file
+                if png_win_id then
+                  vim.defer_fn(function()
+                    if vim.api.nvim_win_is_valid(png_win_id) then
+                      vim.api.nvim_win_close(png_win_id, true) -- Force close
+                      os.remove(png_path)
+                    end
+                  end, 7000) -- 7 seconds
+                end
               else
                 vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
               end
-              -- The temp .mmd file should still be cleaned up
               os.remove(input_file)
-              -- The PNG file is now the goal, so we DON'T remove it.
             end)
           end,
         })
