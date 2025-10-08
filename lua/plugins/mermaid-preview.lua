@@ -93,20 +93,16 @@ return {
           os.remove(output_file)
         end, { buffer = buf, silent = true })
 
-        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file}, {
+        vim.fn.jobstart({mmdc, "-i", input_file, "-o", output_file, "-b", "transparent"}, {
           on_exit = function(_, code)
-            if code == 0 then
-            if vim.env.TERM == "xterm-kitty" then
-              vim.fn.termopen(string.format(
-                "KITTY_WINDOW_ID=$KITTY_WINDOW_ID /usr/bin/kitty +kitten icat --transfer-mode=file --scale-up --place=%dx%d@0x0 %s && sleep infinity",
-                width, height, output_file
-              ))
-            else
-              vim.notify("Aperçu non supporté. Veuillez utiliser le terminal Kitty.", vim.log.levels.WARN)
-            end
-            else
-              vim.notify("Erreur lors de la génération du diagramme", vim.log.levels.ERROR)
-            end
+            vim.schedule(function()
+              vim.api.nvim_win_close(win, true)
+              if code == 0 then
+                vim.fn.jobstart({"xdg-open", output_file})
+              else
+                vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
+              end
+            end)
           end
         })
       end
