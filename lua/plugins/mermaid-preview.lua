@@ -97,18 +97,14 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-          -- Create a shell command that runs viu and then cleans up the temporary files
-          local viu_and_cleanup_cmd = string.format(
-              "sh -c '/home/kd/.cargo/bin/viu -w %d -h %d %s; rm %s %s'",
+          -- DEBUG: Run viu directly without cleanup or auto-close to isolate the error
+          local viu_cmd = string.format(
+              "/home/kd/.cargo/bin/viu -w %d -h %d %s",
               width - 2,
               height - 2,
-              output_file,
-              input_file,
               output_file
           )
-
-          -- Command to open a terminal in Neovim that closes automatically and runs our command
-          local term_cmd = "terminal ++close " .. viu_and_cleanup_cmd
+          local term_cmd = "terminal " .. viu_cmd
 
           -- By setting the current window to our float, the terminal will open inside it
           vim.api.nvim_set_current_win(win)
