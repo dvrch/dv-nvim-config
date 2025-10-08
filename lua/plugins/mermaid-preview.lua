@@ -97,6 +97,11 @@ return {
                 -- Move focus back to the original window
                 vim.api.nvim_set_current_win(original_win)
 
+                -- Start a timer to delete the PNG file
+                vim.defer_fn(function()
+                  pcall(os.remove, png_path) -- Safely remove the png
+                end, 20000) -- 20 seconds
+
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
               end
