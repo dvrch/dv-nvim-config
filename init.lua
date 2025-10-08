@@ -17,9 +17,24 @@ vim.keymap.set('i', 'jj', '<Esc>', {
 })
 
 -- Fait en sorte que taper 'jj' rapidement quitte le mode Terminal
-vim.keymap.set('t', 'jj', '<C-\\><C-n>', {
+vim.keymap.set('t', 'jj', '<C-\><C-n>', {
   noremap = true,
   silent = true
 })
 
 vim.opt.termguicolors = true
+
+
+-- Commandes personnalisées ajoutées par Gemini
+
+-- Ouvre l'explorateur de fichiers dans le répertoire du fichier actuel
+vim.api.nvim_create_user_command('Explorer', function()
+    vim.fn.jobstart('xdg-open ' .. vim.fn.expand('%:p:h'))
+end, { desc = "Ouvre l'explorateur de fichiers pour le fichier actuel" })
+
+-- Copie le chemin absolu du fichier actuel dans le presse-papiers
+vim.api.nvim_create_user_command('CopyPath', function()
+    local path = vim.fn.expand('%:p')
+    vim.fn.setreg('+', path)
+    vim.notify("Chemin copié: " .. path)
+end, { desc = "Copie le chemin absolu du fichier actuel" })
