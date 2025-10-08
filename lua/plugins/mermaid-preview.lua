@@ -98,7 +98,9 @@ return {
             vim.schedule(function()
               vim.api.nvim_win_close(win, true)
               if code == 0 then
-                vim.fn.jobstart({"xdg-open", output_file})
+            -- Use viu to display the image in a new terminal buffer
+            local viu_cmd = string.format("viu -w %d -h %d %s", width, height, output_file)
+            vim.fn.termopen(viu_cmd)
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
               end
