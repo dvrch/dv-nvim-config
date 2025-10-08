@@ -81,36 +81,36 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-                local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
-                local original_win = vim.api.nvim_get_current_win()
-                local png_win_id = nil
+                -- 1. Define the command to run in the terminal
+                local viewer_cmd = string.format(
+                    "bash -c 'TERM=xterm-kitty /home/kd/.cargo/bin/viu %s; exec zsh'",
+                    output_file
+                )
 
-                -- Check if a window exists to the right
+                -- 2. Prepare the window (reuse right or vsplit)
+                local original_win = vim.api.nvim_get_current_win()
                 if vim.fn.winnr() < vim.fn.winnr('$') then
                   vim.cmd('wincmd l')
-                  png_win_id = vim.api.nvim_get_current_win()
-                  vim.cmd('edit ' .. png_path)
                 else
-                  vim.cmd('vsplit ' .. png_path)
-                  png_win_id = vim.api.nvim_get_current_win()
+                  vim.cmd('vsplit')
                 end
 
-                -- Move focus back to the original window
+                -- 3. Run the viewer command in the new window
+                vim.cmd('terminal ' .. viewer_cmd)
+
+                -- 4. Move focus back to the original window
                 vim.api.nvim_set_current_win(original_win)
 
-                -- Start a timer to close the PNG window and delete the file
-                if png_win_id then
-                  vim.defer_fn(function()
-                    if vim.api.nvim_win_is_valid(png_win_id) then
-                      vim.api.nvim_win_close(png_win_id, true) -- Force close
-                      os.remove(png_path)
-                    end
-                  end, 7000) -- 7 seconds
-                end
+                -- 5. Set a timer to delete the temp files
+                vim.defer_fn(function()
+                  pcall(os.remove, input_file)
+                  pcall(os.remove, output_file)
+                end, 17000) -- 17 seconds
+
               else
                 vim.notify("Erreur lors de la génération du diagramme Mermaid.", vim.log.levels.ERROR)
+                pcall(os.remove, input_file) -- Also clean up on failure
               end
-              os.remove(input_file)
             end)
           end,
         })
