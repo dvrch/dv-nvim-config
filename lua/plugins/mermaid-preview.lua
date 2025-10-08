@@ -97,17 +97,16 @@ return {
           on_exit = function(_, code)
             vim.schedule(function()
               if code == 0 then
-          -- Use Kitty's native 'icat' for high-resolution images.
-          -- Wrap in 'sh -c' to chain commands: display the image, then remove temp files.
-          local icat_and_cleanup_cmd = string.format(
-              "sh -c 'kitty +kitten icat %s; rm %s %s'",
+          -- Use 'bash -c' to chain commands: icat, then cleanup, then start a new shell.
+          local icat_cleanup_shell_cmd = string.format(
+              "bash -c 'kitty +kitten icat %s; rm %s %s; exec zsh'",
               output_file,
               input_file,
               output_file
           )
 
-          -- Use 'terminal ++close' to run the command in a terminal that closes on exit.
-          local term_cmd = "terminal ++close " .. icat_and_cleanup_cmd
+          -- We removed '++close' to prevent the zsh error. The user will close the window manually.
+          local term_cmd = "terminal " .. icat_cleanup_shell_cmd
 
           -- By setting the current window to our float, the terminal will open inside it.
           vim.api.nvim_set_current_win(win)
