@@ -103,15 +103,9 @@ return {
               vim.api.nvim_win_close(win, true)
 
               if code == 0 then
-                -- On success, open Telescope pre-filled with the filename
-                pcall(function()
-                  require('telescope.builtin').find_files({
-                    -- search in the current file's directory
-                    cwd = vim.fn.expand('%:p:h'),
-                    -- pre-fill the search with the generated file's name
-                    default_text = 'mermaid-preview.png'
-                  })
-                end)
+                -- On success, open the generated PNG in a new vertical split
+                local png_path = vim.fn.expand('%:p:h') .. '/mermaid-preview.png'
+                vim.cmd('vsplit ' .. png_path)
               else
                 vim.notify("Erreur lors de la g\233n\233ration du diagramme Mermaid.", vim.log.levels.ERROR)
               end
