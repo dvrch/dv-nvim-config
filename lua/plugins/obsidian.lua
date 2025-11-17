@@ -41,7 +41,7 @@ function _G.ObsidianOpenOrLink()
   local target_vault = nil
   local file_to_open = current_file
 
-  -- Déterminer le coffre cible
+  -- Déterminer le coffre cible en comparant les débuts de path
   for _, vault in ipairs(vaults_config) do
     if is_path_inside(current_file, vault.path) then
       target_vault = vault
@@ -60,38 +60,38 @@ function _G.ObsidianOpenOrLink()
     end
 
     if not target_vault then
-      vim.notify("Le coffre pour les liens symboliques n'a pas été trouvé.", vim.log.levels.ERROR)
+      vim.notify("Le coffre pour les liens symboliques ('fict_vlt') n'a pas été trouvé.", vim.log.levels.ERROR)
       return
     end
 
+    -- Copier le fichier au lieu de créer un lien
     local target_dir = target_vault.path .. "/lzvimll"
     vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
-    local symlink_cmd = string.format("ln -sf %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
-    vim.fn.system(symlink_cmd)
+    local copy_cmd = string.format("cp %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
+    vim.fn.system(copy_cmd)
     
     local file_name = vim.fn.fnamemodify(current_file, ":t")
     file_to_open = target_dir .. "/" .. file_name
-    vim.notify("Lien symbolique créé pour " .. file_name, vim.log.levels.INFO)
+    vim.notify("Fichier copié dans " .. target_dir, vim.log.levels.INFO)
+  else
+     -- Le fichier est déjà dans un coffre, on l'ouvre directement
+     file_to_open = current_file
   end
 
   -- Logique de changement de coffre et d'ouverture
-  local client = require("obsidian").util.get_client()
+  -- On utilise la méthode canonique pour récupérer le client
+  local client = require("obsidian").get_client()
   local current_workspace_path = client.workspace.path
-
-  local function open_note()
-    vim.schedule(function()
-      vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(file_to_open))
-    end)
-  end
 
   if current_workspace_path ~= target_vault.path then
     vim.notify("Changement de coffre vers: " .. target_vault.name, vim.log.levels.INFO)
-    -- Le changement de workspace est asynchrone et prend un callback
-    client:switch_workspace(target_vault.name, open_note)
-  else
-    -- Déjà dans le bon coffre, ouvrir directement
-    open_note()
+    client:switch_workspace(target_vault.name)
   end
+
+  -- On utilise vim.schedule pour s'assurer que le changement de contexte est terminé
+  vim.schedule(function()
+    vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(file_to_open))
+  end)
 end
 
 -- Création de la commande utilisateur
@@ -103,7 +103,9 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  lazy = false, -- Mettre à false pour que le client soit toujours dispo
+  -- On désactive le lazy loading pour s'assurer que le client est toujours disponible
+  -- quand la commande personnalisée est appelée.
+  lazy = false,
   ft = "markdown",
 
   dependencies = {
@@ -123,7 +125,7 @@ return {
   end,
 
   keys = {
-    { "<leader>oo", "<cmd>ObsidianOpenOrLink<CR>", desc = "Ouvrir ou Lier dans Obsidian" },
+    { "<leader>oo", "<cmd>ObsidianOpenOrLink<CR>", desc = "Ouvrir ou Copier dans Obsidian" },
     { "<leader>os", "<cmd>ObsidianSearch<CR>", desc = "Chercher une note" },
     { "<leader>on", "<cmd>ObsidianNew<CR>", desc = "Nouvelle note" },
   },
