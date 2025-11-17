@@ -60,13 +60,13 @@ function _G.ObsidianOpenOrLink()
     else
       vim.notify("Lien symbolique créé dans " .. target_dir, vim.log.levels.INFO)
       
-      -- **LA CORRECTION EST ICI**
-      -- Construire le chemin de la note relatif au coffre et l'ouvrir explicitement.
+      -- **LA CORRECTION FINALE EST ICI**
+      -- Construire le chemin absolu du nouveau lien symbolique
       local file_name = vim.fn.fnamemodify(current_file, ":t")
-      local note_path_in_vault = "lzvimll/" .. file_name
+      local absolute_symlink_path = target_dir .. "/" .. file_name
       
-      -- Exécuter ObsidianOpen avec le chemin de la note à ouvrir
-      vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(note_path_in_vault))
+      -- Exécuter ObsidianOpen avec le chemin absolu
+      vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(absolute_symlink_path))
     end
   end
 end
