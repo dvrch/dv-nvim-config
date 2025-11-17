@@ -38,57 +38,42 @@ function _G.ObsidianOpenOrLink()
   end
 
   local vaults_config = get_obsidian_vaults()
-  local target_vault = nil
-  local file_to_open = current_file
-
-  -- Déterminer le coffre cible en comparant les débuts de path
-  for _, vault in ipairs(vaults_config) do
-    if is_path_inside(current_file, vault.path) then
-      target_vault = vault
+  local is_in_vault = false
+  for _, workspace in ipairs(vaults_config) do
+    if is_path_inside(current_file, workspace.path) then
+      is_in_vault = true
       break
     end
   end
 
-  -- Si hors de tout coffre, utiliser la logique de copie
-  if not target_vault then
-    local symlink_vault_path = "/home/kd/Bureau/fict_vlt"
-    for _, vault in ipairs(vaults_config) do
-      if vault.path == symlink_vault_path then
-        target_vault = vault
-        break
-      end
-    end
-
-    if not target_vault then
-      vim.notify("Le coffre pour les copies ('fict_vlt') n'a pas été trouvé.", vim.log.levels.ERROR)
-      return
-    end
-
-    local target_dir = target_vault.path .. "/lzvimll"
+  if is_in_vault then
+    -- Le fichier est déjà dans un coffre. Le simple fait que le buffer soit
+    -- ouvert signifie que le plugin a déjà basculé sur le bon coffre.
+    vim.cmd("ObsidianOpen")
+  else
+    -- Fichier hors de tout coffre.
+    local target_dir = "/home/kd/Bureau/fict_vlt/lzvimll"
     vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
+    
+    -- Copier le fichier
     local copy_cmd = string.format("cp %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
     vim.fn.system(copy_cmd)
-    
-    local file_name = vim.fn.fnamemodify(current_file, ":t")
-    file_to_open = target_dir .. "/" .. file_name
     vim.notify("Fichier copié dans " .. target_dir, vim.log.levels.INFO)
-  else
-     file_to_open = current_file
+
+    -- **LA LOGIQUE FINALE**
+    -- 1. Ouvrir la copie dans un nouveau buffer.
+    local file_name = vim.fn.fnamemodify(current_file, ":t")
+    local copied_file_path = target_dir .. "/" .. file_name
+    vim.cmd("edit " .. vim.fn.fnameescape(copied_file_path))
+
+    -- 2. Laisser le temps à l'autocommand 'BufEnter' du plugin de s'exécuter.
+    --    Cela va automatiquement basculer sur le bon coffre.
+    vim.schedule(function()
+      -- 3. Appeler ObsidianOpen, qui agira sur le nouveau buffer (la copie)
+      --    et dans le bon coffre.
+      vim.cmd("ObsidianOpen")
+    end)
   end
-
-  -- **LA CORRECTION EST ICI**
-  -- Le champ correct est 'current_workspace', pas 'workspace'.
-  local client = require("obsidian").get_client()
-  local current_workspace_path = client.current_workspace.path
-
-  if current_workspace_path ~= target_vault.path then
-    vim.notify("Changement de coffre vers: " .. target_vault.name, vim.log.levels.INFO)
-    client:switch_workspace(target_vault.name)
-  end
-
-  vim.schedule(function()
-    vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(file_to_open))
-  end)
 end
 
 -- Création de la commande utilisateur
@@ -100,7 +85,9 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  lazy = false,
+  -- lazy = true est de nouveau possible car on s'appuie sur les autocommands
+  -- plutôt que sur l'API Lua au démarrage.
+  lazy = true,
   ft = "markdown",
 
   dependencies = {
