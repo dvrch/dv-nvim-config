@@ -49,7 +49,7 @@ function _G.ObsidianOpenOrLink()
     end
   end
 
-  -- Si hors de tout coffre, utiliser la logique du lien symbolique
+  -- Si hors de tout coffre, utiliser la logique de copie
   if not target_vault then
     local symlink_vault_path = "/home/kd/Bureau/fict_vlt"
     for _, vault in ipairs(vaults_config) do
@@ -60,11 +60,10 @@ function _G.ObsidianOpenOrLink()
     end
 
     if not target_vault then
-      vim.notify("Le coffre pour les liens symboliques ('fict_vlt') n'a pas été trouvé.", vim.log.levels.ERROR)
+      vim.notify("Le coffre pour les copies ('fict_vlt') n'a pas été trouvé.", vim.log.levels.ERROR)
       return
     end
 
-    -- Copier le fichier au lieu de créer un lien
     local target_dir = target_vault.path .. "/lzvimll"
     vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
     local copy_cmd = string.format("cp %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
@@ -74,21 +73,19 @@ function _G.ObsidianOpenOrLink()
     file_to_open = target_dir .. "/" .. file_name
     vim.notify("Fichier copié dans " .. target_dir, vim.log.levels.INFO)
   else
-     -- Le fichier est déjà dans un coffre, on l'ouvre directement
      file_to_open = current_file
   end
 
-  -- Logique de changement de coffre et d'ouverture
-  -- On utilise la méthode canonique pour récupérer le client
+  -- **LA CORRECTION EST ICI**
+  -- Le champ correct est 'current_workspace', pas 'workspace'.
   local client = require("obsidian").get_client()
-  local current_workspace_path = client.workspace.path
+  local current_workspace_path = client.current_workspace.path
 
   if current_workspace_path ~= target_vault.path then
     vim.notify("Changement de coffre vers: " .. target_vault.name, vim.log.levels.INFO)
     client:switch_workspace(target_vault.name)
   end
 
-  -- On utilise vim.schedule pour s'assurer que le changement de contexte est terminé
   vim.schedule(function()
     vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(file_to_open))
   end)
@@ -103,8 +100,6 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  -- On désactive le lazy loading pour s'assurer que le client est toujours disponible
-  -- quand la commande personnalisée est appelée.
   lazy = false,
   ft = "markdown",
 
