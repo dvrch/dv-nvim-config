@@ -47,30 +47,27 @@ function _G.ObsidianOpenOrLink()
   end
 
   if is_in_vault then
-    -- Le fichier est déjà dans un coffre. Le simple fait que le buffer soit
-    -- ouvert signifie que le plugin a déjà basculé sur le bon coffre.
+    -- Le fichier est déjà dans un coffre. On l'ouvre.
+    -- Le plugin bascule automatiquement de workspace grâce à son autocommand 'BufEnter'.
     vim.cmd("ObsidianOpen")
   else
-    -- Fichier hors de tout coffre.
+    -- Fichier hors de tout coffre, on gère le lien symbolique.
     local target_dir = "/home/kd/Bureau/fict_vlt/lzvimll"
-    vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
-    
-    -- Copier le fichier
-    local copy_cmd = string.format("cp %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
-    vim.fn.system(copy_cmd)
-    vim.notify("Fichier copié dans " .. target_dir, vim.log.levels.INFO)
-
-    -- **LA LOGIQUE FINALE**
-    -- 1. Ouvrir la copie dans un nouveau buffer.
     local file_name = vim.fn.fnamemodify(current_file, ":t")
-    local copied_file_path = target_dir .. "/" .. file_name
-    vim.cmd("edit " .. vim.fn.fnameescape(copied_file_path))
+    local symlink_path = target_dir .. "/" .. file_name
 
-    -- 2. Laisser le temps à l'autocommand 'BufEnter' du plugin de s'exécuter.
-    --    Cela va automatiquement basculer sur le bon coffre.
+    -- Vérifier si le lien existe déjà avant de le créer.
+    if vim.fn.filereadable(symlink_path) == 0 then
+      vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
+      local symlink_cmd = string.format("ln -s %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(symlink_path))
+      vim.fn.system(symlink_cmd)
+      vim.notify("Lien symbolique créé dans " .. target_dir, vim.log.levels.INFO)
+    end
+
+    -- Ouvrir le lien symbolique dans un buffer pour déclencher le changement de coffre.
+    vim.cmd("edit " .. vim.fn.fnameescape(symlink_path))
+
     vim.schedule(function()
-      -- 3. Appeler ObsidianOpen, qui agira sur le nouveau buffer (la copie)
-      --    et dans le bon coffre.
       vim.cmd("ObsidianOpen")
     end)
   end
@@ -85,8 +82,6 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  -- lazy = true est de nouveau possible car on s'appuie sur les autocommands
-  -- plutôt que sur l'API Lua au démarrage.
   lazy = true,
   ft = "markdown",
 
@@ -107,7 +102,7 @@ return {
   end,
 
   keys = {
-    { "<leader>oo", "<cmd>ObsidianOpenOrLink<CR>", desc = "Ouvrir ou Copier dans Obsidian" },
+    { "<leader>oo", "<cmd>ObsidianOpenOrLink<CR>", desc = "Ouvrir ou Lier dans Obsidian" },
     { "<leader>os", "<cmd>ObsidianSearch<CR>", desc = "Chercher une note" },
     { "<leader>on", "<cmd>ObsidianNew<CR>", desc = "Nouvelle note" },
   },
