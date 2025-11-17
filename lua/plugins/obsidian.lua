@@ -23,7 +23,7 @@ local function get_obsidian_vaults()
   local vaults = {}
   for _, vault_info in pairs(data.vaults) do
     if type(vault_info) == "table" and vault_info.path then
-      table.insert(vaults, { path = vault_info.path })
+      table.insert(vaults, { path = vault_info.path, name = vim.fn.fnamemodify(vault_info.path, ":t") })
     end
   end
   return vaults
@@ -38,36 +38,59 @@ function _G.ObsidianOpenOrLink()
   end
 
   local vaults_config = get_obsidian_vaults()
-  local is_in_vault = false
-  for _, workspace in ipairs(vaults_config) do
-    if is_path_inside(current_file, workspace.path) then
-      is_in_vault = true
+  local target_vault = nil
+  local file_to_open = current_file
+
+  -- Déterminer le coffre cible
+  for _, vault in ipairs(vaults_config) do
+    if is_path_inside(current_file, vault.path) then
+      target_vault = vault
       break
     end
   end
 
-  if is_in_vault then
-    vim.cmd("ObsidianOpen")
-  else
-    local target_dir = "/home/kd/Bureau/fict_vlt/lzvimll"
-    vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
-    
-    local symlink_cmd = string.format("ln -sf %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
-    
-    local result = vim.fn.system(symlink_cmd)
-    if vim.v.shell_error ~= 0 then
-      vim.notify("Échec de la création du lien symbolique: " .. result, vim.log.levels.ERROR)
-    else
-      vim.notify("Lien symbolique créé dans " .. target_dir, vim.log.levels.INFO)
-      
-      -- **LA CORRECTION FINALE EST ICI**
-      -- Construire le chemin absolu du nouveau lien symbolique
-      local file_name = vim.fn.fnamemodify(current_file, ":t")
-      local absolute_symlink_path = target_dir .. "/" .. file_name
-      
-      -- Exécuter ObsidianOpen avec le chemin absolu
-      vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(absolute_symlink_path))
+  -- Si hors de tout coffre, utiliser la logique du lien symbolique
+  if not target_vault then
+    local symlink_vault_path = "/home/kd/Bureau/fict_vlt"
+    for _, vault in ipairs(vaults_config) do
+      if vault.path == symlink_vault_path then
+        target_vault = vault
+        break
+      end
     end
+
+    if not target_vault then
+      vim.notify("Le coffre pour les liens symboliques n'a pas été trouvé.", vim.log.levels.ERROR)
+      return
+    end
+
+    local target_dir = target_vault.path .. "/lzvimll"
+    vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
+    local symlink_cmd = string.format("ln -sf %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(target_dir))
+    vim.fn.system(symlink_cmd)
+    
+    local file_name = vim.fn.fnamemodify(current_file, ":t")
+    file_to_open = target_dir .. "/" .. file_name
+    vim.notify("Lien symbolique créé pour " .. file_name, vim.log.levels.INFO)
+  end
+
+  -- Logique de changement de coffre et d'ouverture
+  local client = require("obsidian").util.get_client()
+  local current_workspace_path = client.workspace.path
+
+  local function open_note()
+    vim.schedule(function()
+      vim.cmd("ObsidianOpen " .. vim.fn.fnameescape(file_to_open))
+    end)
+  end
+
+  if current_workspace_path ~= target_vault.path then
+    vim.notify("Changement de coffre vers: " .. target_vault.name, vim.log.levels.INFO)
+    -- Le changement de workspace est asynchrone et prend un callback
+    client:switch_workspace(target_vault.name, open_note)
+  else
+    -- Déjà dans le bon coffre, ouvrir directement
+    open_note()
   end
 end
 
@@ -80,7 +103,7 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  lazy = true,
+  lazy = false, -- Mettre à false pour que le client soit toujours dispo
   ft = "markdown",
 
   dependencies = {
@@ -91,10 +114,8 @@ return {
   opts = function()
     local vaults = get_obsidian_vaults()
     if #vaults == 0 then
-      vim.notify("obsidian.nvim: Aucun coffre n'a été détecté.", vim.log.levels.WARN)
       return {}
     else
-      vim.notify("obsidian.nvim: " .. #vaults .. " coffre(s) chargé(s).", vim.log.levels.INFO)
       return {
         workspaces = vaults,
       }
