@@ -52,24 +52,34 @@ function _G.ObsidianOpenOrLink()
     vim.cmd("ObsidianOpen")
   else
     -- Fichier hors de tout coffre, on gère le lien symbolique.
-    local target_dir = "/home/kd/Bureau/fict_vlt/lzvimll"
-    local file_name = vim.fn.fnamemodify(current_file, ":t")
-    local symlink_path = target_dir .. "/" .. file_name
+    local vault_path = "/home/kd/Bureau/fict_vlt" -- Chemin racine du coffre Obsidian
+    local symlink_subdir = "lzvimll" -- Sous-dossier pour les liens symboliques
+    local target_dir = vault_path .. "/" .. symlink_subdir
+    local vault_name = vim.fn.fnamemodify(vault_path, ":t") -- Nom du coffre (ex: "fict_vlt")
 
-    -- Vérifier si le lien existe déjà avant de le créer.
-    if vim.fn.filereadable(symlink_path) == 0 then
+    local file_name = vim.fn.fnamemodify(current_file, ":t")
+    local symlink_path_absolute = target_dir .. "/" .. file_name
+    -- Le chemin pour l'URI doit être relatif à la racine du coffre
+    local file_path_relative_to_vault = symlink_subdir .. "/" .. file_name
+
+    -- S'assurer que le dossier cible existe et créer le lien
+    if vim.fn.filereadable(symlink_path_absolute) == 0 then
       vim.fn.system(string.format("mkdir -p %s", vim.fn.shellescape(target_dir)))
-      local symlink_cmd = string.format("ln -s %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(symlink_path))
+      local symlink_cmd = string.format("ln -s %s %s", vim.fn.shellescape(current_file), vim.fn.shellescape(symlink_path_absolute))
       vim.fn.system(symlink_cmd)
-      vim.notify("Lien symbolique créé dans " .. target_dir, vim.log.levels.INFO)
+      vim.notify("Lien symbolique créé : " .. symlink_path_absolute, vim.log.levels.INFO)
     end
 
-    -- Ouvrir le lien symbolique dans un buffer pour déclencher le changement de coffre.
-    vim.cmd("edit " .. vim.fn.fnameescape(symlink_path))
+    -- Construire l'URI avec le nom correct du coffre et le chemin relatif du fichier.
+    local obsidian_uri = string.format("obsidian://open?vault=%s&file=%s",
+      vim.fn.escape(vault_name, " "),
+      vim.fn.escape(file_path_relative_to_vault, " ")
+    )
+    vim.fn.system(string.format("xdg-open %s", vim.fn.shellescape(obsidian_uri)))
+    vim.notify("Ouverture via URI : " .. obsidian_uri, vim.log.levels.INFO)
 
-    vim.schedule(function()
-      vim.cmd("ObsidianOpen")
-    end)
+    -- Basculer l'éditeur sur le lien pour la cohérence.
+    vim.cmd("edit " .. vim.fn.fnameescape(symlink_path_absolute))
   end
 end
 
