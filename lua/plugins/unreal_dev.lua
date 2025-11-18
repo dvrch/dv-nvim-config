@@ -9,21 +9,6 @@ return {
     end,
   },
 
-  -- Treesitter pour C++
-  {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
-    event = { "BufReadPost", "BufNewFile" },
-    opts = {
-      ensure_installed = { "cpp", "lua", "cmake", "markdown", "markdown_inline", "yaml", "latex" },
-      highlight = { enable = true },
-      indent = { enable = true },
-    },
-    config = function(_, opts)
-      require("nvim-treesitter.config").setup(opts)
-    end,
-  },
-
   -- Intégration Unreal
   {
     "goopey7/unreal-support.nvim",

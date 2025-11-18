@@ -1,10 +1,24 @@
 return {
   "nvim-treesitter/nvim-treesitter",
   build = ":TSUpdate",
-  opts = function(_, opts)
-    -- Ensure parsers are installed
-    if type(opts.ensure_installed) == "table" then
-      vim.list_extend(opts.ensure_installed, { "markdown", "markdown_inline", "vimdoc", "lua", "python" })
-    end
-  end,
+  opts = {
+    ensure_installed = {
+      -- Liste consolidée de tous vos fichiers de configuration
+      "bash",
+      "cmake",
+      "cpp",
+      "latex",
+      "lua",
+      "markdown",
+      "markdown_inline",
+      "mermaid",
+      "python",
+      "svelte",
+      "vimdoc",
+      "yaml",
+    },
+    -- Activer la coloration syntaxique et l'indentation
+    highlight = { enable = true },
+    indent = { enable = true },
+  },
 }
