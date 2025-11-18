@@ -1,16 +1,5 @@
 -- ~/.config/nvim/lua/plugins/svelte.lua
 return {
-  -- Ensure nvim-treesitter is configured for svelte
-  {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate", -- Ensure parsers are updated
-    opts = function(_, opts)
-      if type(opts.ensure_installed) == "table" then
-        vim.list_extend(opts.ensure_installed, { "svelte" })
-      end
-    end,
-  },
-
   -- Configure LSP for Svelte via nvim-lspconfig and mason-lspconfig
   {
     "neovim/nvim-lspconfig",
