@@ -92,7 +92,7 @@ vim.api.nvim_create_user_command("ObsidianOpenOrLink", _G.ObsidianOpenOrLink, {}
 return {
   "epwalsh/obsidian.nvim",
   version = "*",
-  lazy = true,
+  lazy = false,
   ft = "markdown",
 
   dependencies = {

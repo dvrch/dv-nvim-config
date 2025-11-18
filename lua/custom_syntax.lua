@@ -10,14 +10,14 @@ vim.api.nvim_create_autocmd("FileType", {
       vim.api.nvim_set_hl(0, "ObsidianPunctuation", { fg = "#00BFFF" })
       vim.api.nvim_set_hl(0, "ObsidianClassName", { fg = "#00FFFF" })
       vim.api.nvim_set_hl(0, "ObsidianFunctionCall", { fg = "#7FFF00" })
-      vim.api.nvim_set_hl(0, "ObsidianSentenceCaps", { fg = "#FFD700" })
+      vim.api.nvim_set_hl(0, "ObsidianSentenceCaps", { fg = "#9f8a13ff" })
       vim.api.nvim_set_hl(0, "ObsidianCapitalLetters", { fg = "#FF69B4" })
-      vim.api.nvim_set_hl(0, "ObsidianDelimiterOpen", { fg = "#FF7F00" })
+      vim.api.nvim_set_hl(0, "ObsidianDelimiterOpen", { fg = "#b35a01ff" })
       vim.api.nvim_set_hl(0, "ObsidianDelimiterClose", { fg = "#FF4500" })
       vim.api.nvim_set_hl(0, "ObsidianKeyword", { fg = "#FF00FF" })
       vim.api.nvim_set_hl(0, "ObsidianTagPattern", { fg = "#FFFF00" })
       vim.api.nvim_set_hl(0, "ObsidianDatePattern", { fg = "#ADFF2F" })
-      vim.api.nvim_set_hl(0, "ObsidianString", { fg = "#FF1493" })
+      vim.api.nvim_set_hl(0, "ObsidianString", { fg = "#a50f5fff" })
       vim.api.nvim_set_hl(0, "ObsidianParens", { fg = "#FF851B" })
       
       -- Apply syntax matches in order of priority
