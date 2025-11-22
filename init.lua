@@ -8,6 +8,7 @@ vim.opt.clipboard:append("unnamedplus")
 require("config.spell")
 require("custom_syntax")
 require("config.autocmds")
+require("pieces_help")
 
 -- Fait en sorte que taper 'jj' rapidement quitte le mode Insertion
 vim.keymap.set("i", "jj", "<Esc>", {
