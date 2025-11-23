@@ -8,7 +8,8 @@ return {
   },
   event = "VeryLazy", -- Chargement différé pour éviter les problèmes au démarrage
   build = function()
-    /home/kd/.config/nvim/nvim-python-venv/bin/python
+    -- S'assurer que le chemin python est défini pour le processus de build
+    vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
 
     vim.notify("Pieces: Build process started for local plugin...", vim.log.levels.INFO)
     -- Installer les paquets python nécessaires dans le venv
@@ -36,7 +37,7 @@ return {
   end,
   init = function()
     -- Forcer l'utilisation du bon environnement Python
-    vim.g.python3_host_prog = "/home/kd/Bureau/fict_vlt/lzvimll/pieces-venv/bin/python"
+    vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
 
     -- Créer une commande utilisateur pour lancer le health check
     vim.api.nvim_create_user_command("PiecesHealthCheck", function()
