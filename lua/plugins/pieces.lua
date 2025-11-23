@@ -19,7 +19,7 @@ return {
         pip_path = python_path:gsub("python$", "pip")
     end
 
-    local install_cmd = pip_path .. " install --upgrade pynvim pieces_os_client"
+    local install_cmd = pip_path .. " install --upgrade pynvim pieces_os_client pyyaml"
     vim.notify("Pieces: Using pip command: " .. install_cmd, vim.log.levels.INFO)
 
     local result = vim.fn.system(install_cmd)
