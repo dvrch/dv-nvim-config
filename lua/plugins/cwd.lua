@@ -1,15 +1,18 @@
 return {
   {
-    -- Priorité élevée pour s'assurer qu'il s'exécute avant les plugins de détection de racine
+    "custom-cwd-fix", -- Un nom pour rendre la spec valide
+    -- Exécuter avec une haute priorité au démarrage
     priority = 1000,
-    -- Charger ce plugin immédiatement au démarrage, ne pas le charger paresseusement
     lazy = false,
     config = function()
-      -- Si Neovim a été ouvert avec un argument qui est un répertoire
+      -- Si Neovim a été ouvert avec un répertoire comme argument
       local arg = vim.fn.argv()[1]
       if vim.fn.argc() > 0 and arg and vim.fn.isdirectory(arg) == 1 then
-        -- Alors, on change le répertoire de travail pour cet argument
-        vim.cmd("silent! cd " .. vim.fn.argv()[1])
+        -- Attendre 10 millisecondes que tous les autres plugins aient fini leur initialisation
+        vim.defer_fn(function()
+          -- Forcer le changement de répertoire pour qu'il soit la commande finale
+          vim.cmd("silent! cd " .. arg)
+        end, 10)
       end
     end,
   },
