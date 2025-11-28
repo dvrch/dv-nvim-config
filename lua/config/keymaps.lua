@@ -24,3 +24,7 @@ vim.keymap.set("n", "<leader>ov", function()
     vim.notify("Aucun fichier à ouvrir dans VSCode.", vim.log.levels.WARN)
   end
 end, { desc = "Ouvrir le fichier actuel dans VSCode" })
+
+-- Find recent projects (workspaces) using telescope-frecency
+-- Shortcut <leader>pw
+vim.keymap.set("n", "<leader>pw", "<cmd>Telescope frecency workspace=CWD<CR>", { desc = "[P]roject [W]orkspaces (frecency)" })
