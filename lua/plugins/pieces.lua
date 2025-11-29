@@ -1,16 +1,11 @@
 return {
-  "pieces-app/plugin_neovim",
-  lazy = false,  -- Chargement immédiat
-  priority = 1000, -- Haute priorité
-  ft = { 'python', 'lua', 'vim', 'markdown' }, -- Add filetype detection
-  dependencies = {
-    'nvim-lua/plenary.nvim', -- Add plenary.nvim as a dependency
-  },
+  dir = "/home/kd/.config/nvim/plugin_neovim", -- Path to your manually cloned plugin
+  lazy = false,
+  priority = 1000,
   config = function()
+    package.path = package.path .. ";" .. "/home/kd/.config/nvim/plugin_neovim/lua/?.lua"
     require("pieces").setup({
-      -- Configuration optionnelle
       enable_cloud = true,
-      -- Autres options si nécessaire
     })
   end,
 }
