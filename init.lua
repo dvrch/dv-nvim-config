@@ -1,4 +1,4 @@
-vim.g.python3_host_prog = vim.fn.stdpath("config") .. "/nvim-python-venv/bin/python"
+vim.g.python3_host_prog = "/home/kd/nvim-venv/bin/python"
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
 
 -- bootstrap lazy.nvim, LazyVim and your plugins

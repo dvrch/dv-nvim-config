@@ -1,18 +1,9 @@
 return {
-  name = "plugin_neovim",
-  dir = vim.fn.stdpath("config") .. "/plugin_neovim",
-  dependencies = {
-    "nvim-lua/plenary.nvim",
-    "kyazdani42/nvim-web-devicons",
-    "MunifTanjim/nui.nvim",
-  },
-  event = "VeryLazy", -- Chargement différé pour éviter les problèmes au démarrage
+  "pieces-app/plugin_neovim",
   build = function()
-    -- S'assurer que le chemin python est défini pour le processus de build
-    vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
-
+    -- Set the correct python path (adapt this to your venv path)
+    vim.g.python3_host_prog = "/home/kd/nvim-venv/bin/python" -- Replace with your venv's Python path
     vim.notify("Pieces: Build process started for local plugin...", vim.log.levels.INFO)
-    -- Installer les paquets python nécessaires dans le venv
     local python_path = vim.g.python3_host_prog
     local pip_path = python_path:gsub("bin/python$", "bin/pip")
     if pip_path == python_path then -- Au cas où le remplacement échoue
@@ -35,20 +26,36 @@ return {
     vim.cmd("UpdateRemotePlugins")
     vim.notify("Pieces: UpdateRemotePlugins command executed. You MUST restart Neovim now.", vim.log.levels.WARN)
   end,
-  init = function()
-    -- Forcer l'utilisation du bon environnement Python
-    vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
-
-    -- Créer une commande utilisateur pour lancer le health check
-    vim.api.nvim_create_user_command("PiecesHealthCheck", function()
-      -- S'assurer que le plugin est chargé avant d'appeler sa commande
-      require("lazy").load({ plugins = { "plugin_neovim" } })
-      vim.cmd("PiecesHealth")
-    end, {
-      desc = "Run Pieces health check",
-    })
-  end,
   config = function()
-    -- La configuration se fait principalement via les commandes du plugin
+    vim.g.python3_host_prog = "/home/kd/nvim-venv/bin/python"
   end,
+  health = function()
+    local status = true
+    local messages = {}
+
+    local ok, pieces = pcall(require, "pieces")
+    if ok then
+      table.insert(messages, {
+        msg = "✅ pieces.nvim est chargé.",
+        icon = "",
+        highlight = "HealthSuccess",
+      })
+    else
+      status = false
+      table.insert(messages, {
+        msg = "❌ pieces.nvim n'a pas pu être chargé. Erreur: " .. pieces,
+        icon = "",
+        highlight = "HealthError",
+      })
+      table.insert(messages, {
+        msg = "💡 Assurez-vous que le plugin est correctement installé et que son chemin est correct.",
+        icon = "",
+        highlight = "HealthWarning",
+      })
+    end
+
+    return status, messages
+  end,
+  -- If you want to specify a branch, you can do it like this:
+  -- branch = "main",
 }
