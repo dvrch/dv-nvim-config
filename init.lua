@@ -38,3 +38,4 @@ vim.api.nvim_create_user_command("CopyPath", function()
   vim.notify("Chemin copié: " .. path)
 end, { desc = "Copie le chemin absolu du fichier actuel" })
 
+vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
