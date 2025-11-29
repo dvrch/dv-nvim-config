@@ -1,4 +1,5 @@
 return {
+  name = "cwd-config", -- Add this line
   -- Exécuter avec une haute priorité au démarrage
   priority = 1000,
   lazy = false,
