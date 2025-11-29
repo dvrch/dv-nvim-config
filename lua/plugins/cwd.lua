@@ -1,6 +1,6 @@
 return {
   {
-    "custom-cwd-fix", -- Un nom pour rendre la spec valide
+    name = "custom-cwd-fix", -- Un nom pour rendre la spec valide
     -- Exécuter avec une haute priorité au démarrage
     priority = 1000,
     lazy = false,
