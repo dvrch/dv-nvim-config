@@ -39,3 +39,5 @@ vim.api.nvim_create_user_command("CopyPath", function()
 end, { desc = "Copie le chemin absolu du fichier actuel" })
 
 vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
+-- Ajoutez au début de votre ~/.config/nvim/init.lua
+vim.fn.setenv("PIECES_OS_PORT", "39300")
