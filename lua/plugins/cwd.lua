@@ -2,7 +2,6 @@ return {
   name = "cwd-config", -- Add this line
   -- Exécuter avec une haute priorité au démarrage
   priority = 1000,
-  lazy = false,
   event = "VeryLazy", -- Add this line to make it a valid local plugin spec
   config = function()
     -- Si Neovim a été ouvert avec un répertoire comme argument
