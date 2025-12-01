@@ -1,14 +1,26 @@
-vim.g.python3_host_prog = "/home/kd/nvim-venv/bin/python"
+-- Début du fichier
+vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
+
+-- Configuration Pieces AVANT le chargement des plugins
+vim.fn.setenv("PIECES_OS_PORT", "39300")
+vim.g.PIECES_OS_PORT = 39300
 
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")
+
+-- Configuration après les plugins
 vim.env.PATH = vim.env.PATH .. ":/home/dv/.nvm/versions/node/v24.5.0/bin"
 vim.opt.clipboard:append("unnamedplus")
+
+-- Chargement des configurations
 require("config.spell")
 require("custom_syntax")
 require("config.autocmds")
 require("pieces_help")
+
+-- Options d'affichage
+vim.opt.termguicolors = true
 
 -- Fait en sorte que taper 'jj' rapidement quitte le mode Insertion
 vim.keymap.set("i", "jj", "<Esc>", {
@@ -21,8 +33,6 @@ vim.keymap.set("t", "jj", "<C-\\><C-n>", {
   noremap = true,
   silent = true,
 })
-
-vim.opt.termguicolors = true
 
 -- Commandes personnalisées ajoutées par Gemini
 
@@ -37,7 +47,3 @@ vim.api.nvim_create_user_command("CopyPath", function()
   vim.fn.setreg("+", path)
   vim.notify("Chemin copié: " .. path)
 end, { desc = "Copie le chemin absolu du fichier actuel" })
-
-vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
--- Ajoutez au début de votre ~/.config/nvim/init.lua
-vim.fn.setenv("PIECES_OS_PORT", "39300")
