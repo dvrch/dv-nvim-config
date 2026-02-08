@@ -1,53 +1,22 @@
 return {
-  -- LSP Configuration for rust_analyzer
   {
-    "neovim/nvim-lspconfig",
-    ---@class LspConfigOpts
-    opts = {
-      servers = {
-        rust_analyzer = {},
-      },
-      -- Custom setup for rust_analyzer to integrate with rust-tools.nvim
-      setup = {
-        rust_analyzer = function(_, opts)
-          require("rust-tools").setup({ server = opts })
-          return true
-        end,
-      },
-    },
-  },
-
-  -- rust-tools.nvim for enhanced Rust development experience
-  {
-    "mrcjkb/rust-tools.nvim",
-    ft = "rust", -- Only load for Rust files
+    "simrat39/rust-tools.nvim",
     dependencies = {
       "neovim/nvim-lspconfig",
-      "nvim-dap", -- Dependency for debugging
     },
-    opts = function()
-      return require("lazyvim.util").merge({
-        server = {
-          -- Options passed directly to rust_analyzer
-          settings = {
-            ["rust-analyzer"] = {
-              inlayHints = {
-                enable = true, -- Enable inlay hints (e.g., type hints, parameter names)
-              },
-              checkOnSave = {
-                command = "clippy", -- Use clippy for checks on save
-              },
-            },
-          },
-        },
-        dap = {
-          adapter = {
-            type = "executable",
-            command = "codelldb",
-            name = "rt_codelldb",
-          },
-        },
-      }, require("lazyvim.config").get_kind_filter())
+    opts = function(_, opts)
+      local rt = require("rust-tools")
+      opts.tools = opts.tools or {}
+
+      opts.server = opts.server or {}
+      require("lazyvim.util").lsp.on_attach(function(client, buffer)
+        if client.name == "rust_analyzer" then
+          -- Hover actions
+          vim.keymap.set("n", "<C-space>", rt.hover_actions.hover_actions, { buffer = buffer })
+          -- Code action groups
+          vim.keymap.set("n", "<Leader>a", rt.code_action_group.code_action_group, { buffer = buffer })
+        end
+      end)
     end,
     config = function(_, opts)
       require("rust-tools").setup(opts)
@@ -58,17 +27,18 @@ return {
   {
     "mfussenegger/nvim-dap",
     dependencies = {
-      "williamboman/mason.nvim",
+      "mason-org/mason.nvim", -- Fixed organization name
       "jay-babu/mason-nvim-dap.nvim",
     },
-    opts = function(_, opts)
+    config = function() -- Changed from opts to config to avoid calling dap.setup()
+      local dap = require("dap")
+      
       -- Ensure codelldb is installed via Mason
       require("mason-nvim-dap").setup({
         ensure_installed = { "codelldb" },
       })
 
       -- Configure codelldb adapter
-      local dap = require("dap")
       dap.adapters.codelldb = {
         type = "server",
         host = "127.0.0.1",
@@ -76,8 +46,6 @@ return {
         executable = {
           command = "codelldb",
           args = { "--port", "${port}" },
-          -- If codelldb is not in your PATH, you might need to specify its full path, e.g.:
-          -- command = vim.fn.stdpath("data") .. "/mason/bin/codelldb",
         },
       }
 
@@ -91,7 +59,7 @@ return {
             return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/target/debug/", "file")
           end,
           cwd = "${workspaceFolder}",
-          stopOnEntry = true,
+          stopOnEntry = false,
         },
         {
           name = "Launch test",
@@ -102,19 +70,9 @@ return {
           end,
           args = { "--test" },
           cwd = "${workspaceFolder}",
-          stopOnEntry = true,
+          stopOnEntry = false,
         },
       }
     end,
-  },
-
-  -- nvim-treesitter for Rust syntax highlighting and parsing
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = {
-      ensure_installed = {
-        "rust", -- Ensure Rust parser is installed
-      },
-    },
   },
 }
