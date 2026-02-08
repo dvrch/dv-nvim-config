@@ -25,6 +25,18 @@ vim.keymap.set("n", "<leader>ov", function()
   end
 end, { desc = "Ouvrir le fichier actuel dans VSCode" })
 
+-- Locate current file in explorer
+vim.keymap.set("n", "<leader>oe", function()
+  local dir = vim.fn.expand("%:p:h")
+  vim.fn.jobstart({ "xdg-open", dir }, { detach = true })
+end, { desc = "Locate in System Explorer" })
+
+-- Open file under cursor with system default
+vim.keymap.set("n", "<leader>ox", function()
+  local file = vim.fn.expand("<cfile>")
+  vim.fn.jobstart({ "xdg-open", file }, { detach = true })
+end, { desc = "Open with System Default" })
+
 -- Find recent projects (workspaces) using telescope-frecency
 -- Shortcut <leader>pw
 vim.keymap.set("n", "<leader>pw", "<cmd>Telescope frecency workspace=CWD<CR>", { desc = "[P]roject [W]orkspaces (frecency)" })
