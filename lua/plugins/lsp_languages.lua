@@ -3,8 +3,8 @@ return {
   {
     "neovim/nvim-lspconfig",
     dependencies = {
-      "mason-org/mason.nvim", -- Updated organization
-      "mason-org/mason-lspconfig.nvim", -- Updated organization
+      "mason-org/mason.nvim",
+      "mason-org/mason-lspconfig.nvim",
     },
     opts = {
       -- Ensure these servers are installed automatically
@@ -30,7 +30,7 @@ return {
             },
           },
         },
-        marksman = {},
+        marksman = {}, -- Markdown LSP
         svelte = {},
         ts_ls = {},
         html = {},
@@ -60,7 +60,8 @@ return {
     "mfussenegger/nvim-lint",
     opts = {
       linters_by_ft = {
-        python = { "flake8" },
+        -- python = { "flake8" }, -- Removed to avoid ENOENT if not installed
+        markdown = { "vale" },
       },
     },
   },
