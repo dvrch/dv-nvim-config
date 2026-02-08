@@ -3,9 +3,8 @@ return {
   {
     "neovim/nvim-lspconfig",
     dependencies = {
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      "hrsh7th/cmp-nvim-lsp",
+      "mason-org/mason.nvim", -- Updated organization
+      "mason-org/mason-lspconfig.nvim", -- Updated organization
     },
     opts = {
       -- Ensure these servers are installed automatically
@@ -22,9 +21,7 @@ return {
             },
           },
         },
-        -- C++
         clangd = {},
-        -- Lua (For Neovim config)
         lua_ls = {
           settings = {
             Lua = {
@@ -33,62 +30,38 @@ return {
             },
           },
         },
-        -- Markdown
         marksman = {},
-        -- Svelte & Web
         svelte = {},
-        ts_ls = {}, -- Replacement for tsserver
+        ts_ls = {},
         html = {},
         cssls = {},
       },
     },
-    config = function(_, opts)
-      local lspconfig = require("lspconfig")
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      for server, server_opts in pairs(opts.servers) do
-        server_opts.capabilities = capabilities
-        lspconfig[server].setup(server_opts)
-      end
-    end,
   },
 
-  -- 💅 Linting & Formatting (null-ls equivalent)
+  -- 💅 Formatting (Modern replacement for none-ls)
   {
-    "nvimtools/none-ls.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
-    config = function()
-      local null_ls = require("null-ls")
-      null_ls.setup({
-        sources = {
-          -- Python
-          null_ls.builtins.formatting.black,
-          null_ls.builtins.diagnostics.flake8,
-          -- Markdown
-          null_ls.builtins.formatting.prettier.with({
-            filetypes = { "markdown", "html", "css", "svelte", "javascript" },
-          }),
-          -- Lua
-          null_ls.builtins.formatting.stylua,
-        },
-      })
-    end,
+    "stevearc/conform.nvim",
+    opts = {
+      formatters_by_ft = {
+        python = { "black" },
+        lua = { "stylua" },
+        svelte = { "prettier" },
+        javascript = { "prettier" },
+        html = { "prettier" },
+        css = { "prettier" },
+        markdown = { "prettier" },
+      },
+    },
   },
 
-  -- 🧩 Autocomp (cmp) integration
+  -- 🧩 Linting (Modern replacement for none-ls)
   {
-    "hrsh7th/nvim-cmp",
-    opts = function(_, opts)
-      local cmp = require("cmp")
-      opts.mapping = cmp.mapping.preset.insert({
-        ["<C-Space>"] = cmp.mapping.complete(),
-        ["<CR>"] = cmp.mapping.confirm({ select = true }),
-      })
-      opts.sources = cmp.config.sources({
-        { name = "nvim_lsp" },
-        { name = "buffer" },
-        { name = "path" },
-      })
-    end,
+    "mfussenegger/nvim-lint",
+    opts = {
+      linters_by_ft = {
+        python = { "flake8" },
+      },
+    },
   },
 }
