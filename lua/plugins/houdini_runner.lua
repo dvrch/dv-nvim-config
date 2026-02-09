@@ -32,6 +32,11 @@ return {
           vim.api.nvim_buf_set_option(target_buf, "buftype", "nofile")
         end
 
+        -- Update the internal reference if it's the main output
+        if suffix == nil or suffix == "Output" then
+            output_buf = target_buf
+        end
+
         -- Check if buffer is displayed in any window
         local target_win = nil
         for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -74,17 +79,33 @@ return {
         })
       end
 
-      -- Clear command
+      -- Clear commands (All specialized buffers)
       vim.keymap.set("n", "<leader>rc", function()
-        if output_buf and vim.api.nvim_buf_is_valid(output_buf) then
-          vim.api.nvim_buf_set_lines(output_buf, 0, -1, false, { "--- Cleared ---" })
+        for _, suffix in ipairs({ "Output", "NodeInfo", "Errors" }) do
+          local buf_name = "Houdini" .. suffix
+          for _, b in ipairs(vim.api.nvim_list_bufs()) do
+            if vim.api.nvim_buf_get_name(b):match(buf_name .. "$") then
+              vim.api.nvim_buf_set_lines(b, 0, -1, false, { "--- Cleared ---" })
+            end
+          end
         end
-      end, { desc = "Clear Houdini Output" })
+        vim.notify("Logs Houdini effacés 🧹", vim.log.levels.INFO)
+      end, { desc = "Clear All Houdini Logs" })
 
       -- Run Current File
       vim.keymap.set("n", "<leader>rr", function()
         run_in_houdini(vim.fn.expand("%:p"))
       end, { desc = "Run in Houdini (Persistent Win)" })
+
+      -- Simulation Reset (Master)
+      vim.keymap.set("n", "<leader>rs", function()
+        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/hq.py"
+        local cmd = "python3 " .. script .. " 'import hou; hou.session.PROUDINI_KART_STATE = {}; print(\"Simulation Reset ✅\")'"
+        local handle = io.popen(cmd)
+        local result = handle:read("*a")
+        handle:close()
+        vim.notify(result:gsub("\n", ""), vim.log.levels.INFO)
+      end, { desc = "Houdini: Reset Simulation Data" })
 
       -- Run Node Info (Now correctly using Absolute Paths & Dedicated Buffer)
       vim.keymap.set("n", "<leader>ri", function()
@@ -97,9 +118,9 @@ return {
           if input == "ALL" then
             cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"ALL\",\"\"]; exec(open(\"" .. script .. "\").read())'"
           elseif input == "" then
-            cmd = base_cmd .. "'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. script .. "\").read())'"
+            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. script .. "\").read())'"
           else
-            cmd = base_cmd .. "'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. script .. "\").read())'"
+            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. script .. "\").read())'"
           end
           
           local handle = io.popen(cmd .. " 2>&1")
