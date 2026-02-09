@@ -14,33 +14,43 @@ return {
       local output_buf = nil
       local output_win = nil
 
-      local function get_output_window()
-        if output_buf == nil or not vim.api.nvim_buf_is_valid(output_buf) then
-          output_buf = vim.api.nvim_create_buf(false, true)
-          vim.api.nvim_buf_set_name(output_buf, "HoudiniOutput")
-          vim.api.nvim_buf_set_option(output_buf, "buftype", "nofile")
-        end
-
-        -- Check if buffer is displayed in any window
-        local wins = vim.api.nvim_list_wins()
-        output_win = nil
-        for _, win in ipairs(wins) do
-          if vim.api.nvim_win_get_buf(win) == output_buf then
-            output_win = win
+      local function get_output_window(suffix)
+        local buf_name = "Houdini" .. (suffix or "Output")
+        local target_buf = nil
+        
+        -- Find existing buffer by name
+        for _, b in ipairs(vim.api.nvim_list_bufs()) do
+          if vim.api.nvim_buf_get_name(b):match(buf_name .. "$") then
+            target_buf = b
             break
           end
         end
 
-        if output_win == nil then
-          vim.cmd("belowright 15split")
-          output_win = vim.api.nvim_get_current_win()
-          vim.api.nvim_win_set_buf(output_win, output_buf)
+        if target_buf == nil or not vim.api.nvim_buf_is_valid(target_buf) then
+          target_buf = vim.api.nvim_create_buf(false, true)
+          vim.api.nvim_buf_set_name(target_buf, buf_name)
+          vim.api.nvim_buf_set_option(target_buf, "buftype", "nofile")
         end
-        return output_buf, output_win
+
+        -- Check if buffer is displayed in any window
+        local target_win = nil
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+          if vim.api.nvim_win_get_buf(win) == target_buf then
+            target_win = win
+            break
+          end
+        end
+
+        if target_win == nil then
+          vim.cmd("belowright 15split")
+          target_win = vim.api.nvim_get_current_win()
+          vim.api.nvim_win_set_buf(target_win, target_buf)
+        end
+        return target_buf, target_win
       end
 
-      local function run_in_houdini(filepath)
-        local buf, win = get_output_window()
+      local function run_in_houdini(filepath, suffix)
+        local buf, win = get_output_window(suffix)
         local cmd = { "python3", "/home/kd/Documents/proudini/P26_1/scripts/python/send_to_houdini.py", filepath }
         
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "🚀 Executing: " .. filepath .. " [" .. os.date("%H:%M:%S") .. "]" })
@@ -76,33 +86,43 @@ return {
         run_in_houdini(vim.fn.expand("%:p"))
       end, { desc = "Run in Houdini (Persistent Win)" })
 
-      -- Run Node Info (Now correctly using HQ/Socket)
+      -- Run Node Info (Now correctly using Absolute Paths & Dedicated Buffer)
       vim.keymap.set("n", "<leader>ri", function()
         vim.ui.input({ prompt = "Path (Vide = Sélection / ALL = Liste tout): ", default = "" }, function(input)
           local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_db.py"
+          local hq_script = "/home/kd/Documents/proudini/P26_1/scripts/python/hq.py"
+          local base_cmd = "python3 " .. hq_script .. " "
           local cmd = ""
           
           if input == "ALL" then
-            cmd = "hq 'exec(open(\"" .. script .. "\").read()); print(dump_all_nodes())'"
+            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"ALL\",\"\"]; exec(open(\"" .. script .. "\").read())'"
           elseif input == "" then
-            cmd = "hq 'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. script .. "\").read())'"
+            cmd = base_cmd .. "'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. script .. "\").read())'"
           else
-            cmd = "hq 'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. script .. "\").read())'"
+            cmd = base_cmd .. "'exec(open(\"" .. script .. "\").read()); import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. script .. "\").read())'"
           end
           
-          local handle = io.popen(cmd)
+          local handle = io.popen(cmd .. " 2>&1")
           local result = handle:read("*a")
           handle:close()
           
-          local buf, win = get_output_window()
-          vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(result, "\n"))
+          if not result or result == "" then
+            result = "⚠️ Aucune réponse du serveur Houdini. Est-il lancé ?"
+          end
+          
+          local buf, win = get_output_window("NodeInfo")
+          -- On AJOUTE au lieu de remplacer
+          vim.api.nvim_buf_set_lines(buf, -1, -1, false, { os.date("[%H:%M:%S] --- INFO ---") })
+          vim.api.nvim_buf_set_lines(buf, -1, -1, false, vim.split(result, "\n"))
+          vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "--------------------", "" })
+          vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
         end)
       end, { desc = "Houdini: Node Database & Info (i)" })
 
       -- Run Error Report
       vim.keymap.set("n", "<leader>re", function()
         local script = "/home/kd/Documents/proudini/P26_1/scripts/python/houdini_errors.py"
-        run_in_houdini(script)
+        run_in_houdini(script, "Errors")
       end, { desc = "Houdini: Report Scene Errors" })
       
     end,
