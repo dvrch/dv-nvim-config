@@ -29,11 +29,22 @@ end, { desc = "Ouvrir le fichier actuel dans VSCode" })
 vim.keymap.set("n", "<leader>oe", function()
   local file = vim.fn.expand("%:p")
   if file and file ~= "" then
-    -- Explicitly use absolute path to dolphin and shellescape
-    vim.fn.jobstart("/usr/bin/dolphin --select " .. vim.fn.shellescape(file), { detach = true })
-    vim.notify("Dolphin ouvert sur: " .. file, vim.log.levels.INFO)
+    -- Use os.execute with nohup to ensure it detaches correctly
+    local cmd = string.format("nohup /usr/bin/dolphin --select %s >/dev/null 2>&1 &", vim.fn.shellescape(file))
+    os.execute(cmd)
+    vim.notify("Dolphin (Focus) : " .. vim.fn.pathshorten(file), vim.log.levels.INFO)
   end
 end, { desc = "Locate in Dolphin Explorer" })
+
+-- Open current directory in explorer
+vim.keymap.set("n", "<leader>od", function()
+  local dir = vim.fn.expand("%:p:h")
+  if dir and dir ~= "" then
+    local cmd = string.format("nohup /usr/bin/dolphin %s >/dev/null 2>&1 &", vim.fn.shellescape(dir))
+    os.execute(cmd)
+    vim.notify("Dolphin (Dossier) : " .. vim.fn.pathshorten(dir), vim.log.levels.INFO)
+  end
+end, { desc = "Open Directory in Dolphin" })
 
 -- Open file under cursor with system default
 vim.keymap.set("n", "<leader>ox", function()
