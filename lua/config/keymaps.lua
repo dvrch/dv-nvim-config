@@ -28,13 +28,19 @@ end, { desc = "Ouvrir le fichier actuel dans VSCode" })
 -- Locate current file in explorer
 vim.keymap.set("n", "<leader>oe", function()
   local dir = vim.fn.expand("%:p:h")
-  vim.fn.jobstart({ "xdg-open", dir }, { detach = true })
-end, { desc = "Locate in System Explorer" })
+  if dir and dir ~= "" then
+    -- Explicitly use dolphin as requested by the user
+    vim.fn.jobstart({ "dolphin", "--select", vim.fn.expand("%:p") }, { detach = true })
+    vim.notify("Explorateur ouvert sur: " .. dir, vim.log.levels.INFO)
+  end
+end, { desc = "Locate in Dolphin Explorer" })
 
 -- Open file under cursor with system default
 vim.keymap.set("n", "<leader>ox", function()
   local file = vim.fn.expand("<cfile>")
-  vim.fn.jobstart({ "xdg-open", file }, { detach = true })
+  if file and file ~= "" then
+    vim.fn.jobstart({ "xdg-open", file }, { detach = true })
+  end
 end, { desc = "Open with System Default" })
 
 -- Find recent projects (workspaces) using telescope-frecency
