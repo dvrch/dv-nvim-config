@@ -78,18 +78,17 @@ return {
 
       -- Run Node Info
       vim.keymap.set("n", "<leader>ri", function()
-        vim.ui.input({ prompt = "Node Path: ", default = "/obj/KART_SIMULATION/fetch_draco_mesh" }, function(input)
-          if input then
-            local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_info.py"
-            local tmp_cmd = "python3 " .. script .. " " .. input
-            -- Execute and capture output to display in our persistent window
-            local handle = io.popen(tmp_cmd)
-            local result = handle:read("*a")
-            handle:close()
-            
-            local buf, win = get_output_window()
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(result, "\n"))
-          end
+        vim.ui.input({ prompt = "Node Path (Laissez vide pour la sélection Houdini): ", default = "" }, function(input)
+          -- On passe l'input (qui peut être vide) au script
+          local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_info.py"
+          local tmp_cmd = "python3 " .. script .. " '" .. (input or "") .. "'"
+          
+          local handle = io.popen(tmp_cmd)
+          local result = handle:read("*a")
+          handle:close()
+          
+          local buf, win = get_output_window()
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(result, "\n"))
         end)
       end, { desc = "Houdini: Get Node Info (i)" })
 
