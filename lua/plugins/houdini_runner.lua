@@ -79,6 +79,31 @@ return {
         })
       end
 
+      local function run_live_logs()
+        local buf, win = get_output_window("LiveLog")
+        local log_file = "/tmp/houdini_live.log"
+        
+        -- S'assurer que le fichier existe
+        os.execute("touch " .. log_file)
+        
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "📺 SUIVI DES LOGS LIVE HOUDINI...", "---" })
+        
+        vim.fn.jobstart({ "tail", "-f", log_file }, {
+          on_stdout = function(_, data)
+            if data then
+              vim.api.nvim_buf_set_lines(buf, -1, -1, false, data)
+              vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
+            end
+          end,
+        })
+      end
+
+      local function open_houdini_shell()
+        local hython = "/opt/hfs21.0/bin/hython"
+        vim.cmd("belowright 15split")
+        vim.fn.termopen(hython)
+      end
+
       -- Clear commands (All specialized buffers)
       vim.keymap.set("n", "<leader>rc", function()
         for _, suffix in ipairs({ "Output", "NodeInfo", "Errors" }) do
@@ -151,6 +176,19 @@ return {
         local script = "/home/kd/Documents/proudini/P26_1/scripts/python/houdini_errors.py"
         run_in_houdini(script, "Errors")
       end, { desc = "Houdini: Report Scene Errors" })
+
+      -- Live Logs
+      vim.keymap.set("n", "<leader>rl", run_live_logs, { desc = "Houdini: Watch Live Logs (tail -f)" })
+
+      -- Interactive Shell
+      vim.keymap.set("n", "<leader>rh", open_houdini_shell, { desc = "Houdini: Open Interactive Hython Shell" })
+
+      -- Start Live Logger in Houdini
+      vim.keymap.set("n", "<leader>rx", function()
+        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/live_logger.py"
+        run_in_houdini(script)
+        vim.notify("Live Logger démarré dans Houdini 🛰️", vim.log.levels.INFO)
+      end, { desc = "Houdini: Start Live Logger" })
       
     end,
   },

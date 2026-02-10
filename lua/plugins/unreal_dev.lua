@@ -16,7 +16,7 @@ return {
       require("unreal-support").setup({
         -- Répertoire racine de ton UE (facultatif si autodétecté)
         unreal_engine_path = "/home/kd/Bureau/Linux_Unreal_Engine_5.6.0",
-        project_root = "/home/kd/Documents/Unreal Projects/city_building_osm_project_files/OSM_Unreal_project/Unreal_project/"
+        project_path = "/home/kd/Documents/Unreal Projects/city_building_osm_project_files/OSM_Unreal_project/Unreal_project/"
       })
     end,
   },
