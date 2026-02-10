@@ -140,6 +140,12 @@ return {
         end)
       end, { desc = "Houdini: Node Database & Info (i)" })
 
+      -- Run Full Parameters Report
+      vim.keymap.set("n", "<leader>rp", function()
+        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_params_full.py"
+        run_in_houdini(script, "Params")
+      end, { desc = "Houdini: Full Parameters Report" })
+
       -- Run Error Report
       vim.keymap.set("n", "<leader>re", function()
         local script = "/home/kd/Documents/proudini/P26_1/scripts/python/houdini_errors.py"
