@@ -1,40 +1,42 @@
-# 🚀 Guide Rapide : Jupyter dans Neovim (Optimisé)
+# 🚀 Guide Complet Jupyter : Neovim 🛰️
 
-### 🛠️ Initialisation du Noyau (Kernel)
-- **`<leader>mk`** : Initialise directement avec **Python 3 (Système)**. C'est le plus rapide ! ⚡
-- **`<leader>mj`** : Te permet de choisir manuellement un autre noyau si besoin.
+Tous les raccourcis Jupyter sont maintenant regroupés sous le préfixe **`<leader>j`** (J pour Jupyter) pour éviter toute confusion avec Obsidian ou le système.
 
 ---
 
-### 🎹 Raccourcis Principaux
+### 🛠️ 1. Initialisation
+Avant tout, lance le moteur dans ton fichier :
+- **`<leader>mk`** : Démarre le noyau **Python 3** (Système).
 
+---
+
+### 🎹 2. Exécution du Code
 | Touches | Action |
 | :--- | :--- |
-| **`<leader>mk`** | **Initialisation Rapide** (Python 3) |
-| **`<leader>rl`** | Exécuter la **Ligne** actuelle |
-| **`<leader>rc`** | Ré-exécuter la **Cellule** actuelle (délimitée par `# %%`) |
-| **`<leader>os`** | **Montrer** l'output (Fenêtre flottante) |
-| **`<leader>rd`** | **Effacer** l'output de la cellule |
-| **`<leader>mh`** | **Ouvrir cette aide** 📖 |
+| **`<leader>jc`** | Exécuter la **Cellule** (bloc entre les lignes `# %%`) |
+| **`<leader>jx`** | Exécuter la **Ligne** actuelle |
+| **`<leader>jv`** | Exécuter la **Sélection Visuelle** (en mode visuel) |
 
 ---
 
-### 💡 Détection des Cellules ("Not in a cell")
-Pour que Neovim reconnaisse une cellule, j'ai activé le format **Hydrogen**.
-Une cellule doit ressembler à ceci :
-```python
-# %%
-print("Ceci est une cellule")
-a = 10
-# %%
-```
-Si tu n'as pas de `# %%`, Neovim ne "voit" pas la cellule. Tu peux les ajouter manuellement ou laisser Jupytext les gérer.
+### 📊 3. Gestion de l'Output (Résultats)
+Les fenêtres s'ouvrent seules, mais tu peux les piloter :
+| Touches | Action |
+| :--- | :--- |
+| **`<leader>jo`** | **Ouvrir/Montrer** la fenêtre de résultat (Output) |
+| **`<leader>jh`** | **Cacher** la fenêtre de résultat |
+| **`<leader>jd`** | **Supprimer** l'output (efface le texte/image de la cellule) |
 
 ---
 
-### 📊 Visualisation
-- Pour voir un graphique : fais ton exécution, puis **`<leader>os`**.
-- L'erreur `E325 ATTENTION` (Swap file) a été nettoyée. Neovim ne devrait plus bloquer à l'ouverture.
+### 🎨 4. Rappel Coloration & Aide
+| Touches | Action |
+| :--- | :--- |
+| **`<leader>uy`** | Activer/Désactiver ta coloration **Obsidienne** |
+| **`<leader>jm`** | Ouvrir **ce guide d'aide** (Jupyter Memo) |
 
 ---
+## 💡 Conseil : 
+Pour supprimer le résultat d'une ligne ou d'une cellule, place ton curseur dessus et fais **`<leader>jd`**. 
+
 *Configuré avec ❤️ par Antigravity.*
