@@ -1,43 +1,42 @@
-# 🚀 Guide Jupyter Master : Neovim 🛰️
+# 🚀 Guide Jupyter Simplifié : Neovim 🛰️
 
-Ton environnement a été migré vers le format **Markdown (.md)** pour Jupytext. C'est le mode le plus puissant car il permet une vraie coloration mixte.
-
----
-
-### 🎨 1. Coloration Syntaxique Double
-- Tes fichiers `.ipynb` s'ouvriront désormais comme du **Markdown**.
-- **Le texte** : Coloration Markdown native (titres, gras, etc.).
-- **Le code** : Coloration Python native complète à l'intérieur des blocs ```python.
-- **Toggle** : Utilise toujours **`<leader>uy`** pour alterner avec ta coloration Obsidienne.
+Configuration ultra-simplifiée : Molten travaille **directement** sur les fichiers `.ipynb` sans conversion intermédiaire.
 
 ---
 
-### 📏 2. Délimitation des Cellules (Visuel)
-Les cellules sont délimitées par ` ```python ` et ` ``` `.
-- **Ligne de séparation** : J'ai ajouté un trait horizontal virtuel (`━━━`) sur ces balises pour que tu voies bien les blocs, sans polluer le fichier.
+## 🎨 Coloration Syntaxique
+Les fichiers `.ipynb` s'ouvrent avec :
+- **JSON natif** : Neovim affiche la structure brute du notebook
+- Pour avoir une belle vue, utilise VSCode en parallèle ou travaille directement dans le JSON
+
+> **Note** : J'ai désactivé Jupytext qui créait des fichiers parasites. Molten fonctionne seul maintenant.
 
 ---
 
-### 🎹 3. Nouveaux Raccourcis Unifiés
-| Action | Raccourci | Résultat |
-| :--- | :--- | :--- |
-| **Initialiser** | **`<leader>mk`** | Lance le moteur Python |
-| **Exécuter Cellule** | **`<leader>jc`** | Exécute tout le bloc de code |
-| **Exécuter Ligne** | **`<leader>jx`** | Exécute la ligne sous le curseur |
-| **Supprimer Output** | **`<leader>jd`** | Efface le résultat (Ligne ou Cellule) |
-| **Voir en Grand** | **`<leader>jo`** | Ouvre une fenêtre flottante (si texte long) |
+## ⌨️ Raccourcis Jupyter
+
+| Action | Touches |
+|:---|:---|
+| **Initialiser** (se fait auto) | `<leader>mk` |
+| **Exécuter Cellule** | `<leader>jc` |
+| **Exécuter Ligne** | `<leader>jx` |
+| **Supprimer Output** | `<leader>jd` |
+| **Voir Output (Float)** | `<leader>jo` |
 
 ---
 
-### 📊 4. Où est mon résultat ? (Nouveauté !)
-- **Plus de fenêtres gênantes** : Le résultat apparaît désormais **DIRECTEMENT SOUS TA LIGNE** de code en texte virtuel bleu/gris. ✅
-- Pour les graphiques (plots), ils s'afficheront sur ton code là où se trouve le curseur.
+## 🔧 Navigation dans un .ipynb
+
+Les notebooks `.ipynb` sont des fichiers JSON. Pour exécuter du code :
+1. Place ton curseur sur une ligne Python dans une cellule "source"
+2. Fais `<leader>jx` (ligne) ou `<leader>jc` (cellule complète)
+3. Le résultat apparaît en dessous en texte virtuel
 
 ---
-### 🚨 Aide au dépannage ("Not in a cell")
-Si Molten dit "Not in a cell", assure-toi que ton curseur est **à l'intérieur** d'un bloc de code Markdown :
-```python
-print("Ici ça marche")
-```
+
+## 💡 Conseil
+Pour une meilleure expérience visuelle, ouvre le même fichier dans VSCode à côté de Neovim :
+- **VSCode** : Pour voir et éditer visuellement
+- **Neovim** : Pour exécuter rapidement avec les raccourcis
 
 *Configuré avec ❤️ par Antigravity.*
