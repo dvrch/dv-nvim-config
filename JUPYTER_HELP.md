@@ -1,48 +1,40 @@
-# 🚀 Guide Rapide : Jupyter dans Neovim
+# 🚀 Guide Rapide : Jupyter dans Neovim (Optimisé)
 
-Bienvenue dans ton environnement de Data Science ultra-performant ! 🛰️
-
-## 🛠️ Initialisation (Indispensable)
-Avant d'exécuter du code, tu dois initialiser le noyau (kernel) :
-1. Ouvre un fichier `.ipynb` ou `.py`.
-2. Appuie sur `<leader>mj`.
-3. Sélectionne `python3` (ou le kernel de ton choix).
+### 🛠️ Initialisation du Noyau (Kernel)
+- **`<leader>mk`** : Initialise directement avec **Python 3 (Système)**. C'est le plus rapide ! ⚡
+- **`<leader>mj`** : Te permet de choisir manuellement un autre noyau si besoin.
 
 ---
 
-## 🎹 Raccourcis Principaux
+### 🎹 Raccourcis Principaux
 
 | Touches | Action |
 | :--- | :--- |
-| `<leader>mj` | **Initialiser le Kernel** (Startup) |
-| `<leader>rl` | Exécuter la **Ligne** actuelle |
-| `<leader>rc` | Ré-exécuter la **Cellule** actuelle |
-| `<leader>me` | Évaluer un **Opérateur** (ex: `vap` pour un paragraphe) |
-| `<leader>rv` | Évaluer la **Sélection Visuelle** |
-| `<leader>os` | **Montrer** l'output (Float Window) |
-| `<leader>oh` | **Cacher** l'output |
-| `<leader>rd` | **Effacer** l'output de la cellule |
-| `<leader>mh` | **Ouvrir cette aide** 📖 |
+| **`<leader>mk`** | **Initialisation Rapide** (Python 3) |
+| **`<leader>rl`** | Exécuter la **Ligne** actuelle |
+| **`<leader>rc`** | Ré-exécuter la **Cellule** actuelle (délimitée par `# %%`) |
+| **`<leader>os`** | **Montrer** l'output (Fenêtre flottante) |
+| **`<leader>rd`** | **Effacer** l'output de la cellule |
+| **`<leader>mh`** | **Ouvrir cette aide** 📖 |
 
 ---
 
-## 📊 Visualisation & Images
-- Les graphiques (Matplotlib, Seaborn, Plotly) s'affichent automatiquement si ton terminal le supporte.
-- Si les images ne s'affichent pas, vérifie que `luarocks install magick` a bien fonctionné.
-- Utilise `<leader>os` pour voir le graphique en grand dans une fenêtre flottante.
+### 💡 Détection des Cellules ("Not in a cell")
+Pour que Neovim reconnaisse une cellule, j'ai activé le format **Hydrogen**.
+Une cellule doit ressembler à ceci :
+```python
+# %%
+print("Ceci est une cellule")
+a = 10
+# %%
+```
+Si tu n'as pas de `# %%`, Neovim ne "voit" pas la cellule. Tu peux les ajouter manuellement ou laisser Jupytext les gérer.
 
 ---
 
-## 📝 Édition de Notebooks (.ipynb)
-- Grâce à **Jupytext**, tu peux ouvrir un fichier `.ipynb` et il sera affiché comme du Markdown.
-- À l'enregistrement (`:w`), Neovim synchronise automatiquement les changements avec le fichier `.ipynb` réel.
-- **Otter.nvim** s'occupe de te donner l'autocomplétion (LSP) dans les blocs de code.
-
----
-
-## ⚡ Astuces
-- Pour voir toutes les variables : utilise les commandes magiques IPython comme `%whos`.
-- Pour installer un package sans quitter Neovim : `!pip install <package>`.
+### 📊 Visualisation
+- Pour voir un graphique : fais ton exécution, puis **`<leader>os`**.
+- L'erreur `E325 ATTENTION` (Swap file) a été nettoyée. Neovim ne devrait plus bloquer à l'ouverture.
 
 ---
 *Configuré avec ❤️ par Antigravity.*

@@ -11,17 +11,37 @@ return {
       vim.g.molten_output_win_max_height = 12
       vim.g.molten_virt_text_output = true
       vim.g.molten_virt_lines_off_by_1 = true
+      
+      -- Noyau par défaut pour éviter de demander à chaque fois
+      vim.g.molten_default_kernel = "python3"
+      
+      -- Sauvegarde auto des résultats dans le fichier (si supporté)
+      vim.g.molten_save_init_args = true
+      vim.g.molten_auto_init_behavior = "init_import"
     end,
     keys = {
       { "<leader>mj", ":MoltenInit<cr>", desc = "Initialize Molten" },
+      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Python3 Kernel (Default)" },
       { "<leader>me", ":MoltenEvaluateOperator<cr>", desc = "Evaluate Operator" },
       { "<leader>rl", ":MoltenEvaluateLine<cr>", desc = "Evaluate Line" },
       { "<leader>rc", ":MoltenReevaluateCell<cr>", desc = "Re-evaluate Cell" },
-      { "<leader>rd", ":MoltenDeleteRaw<cr>", desc = "Delete Cell Output" },
+      { "<leader>rd", ":MoltenDelete<cr>", desc = "Delete Cell Output" },
       { "<leader>rv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Evaluate Visual" },
       { "<leader>oh", ":MoltenHideOutput<cr>", desc = "Hide Output" },
       { "<leader>os", ":MoltenShowOutput<cr>", desc = "Show Output" },
       { "<leader>mh", ":vsplit ~/.config/nvim/JUPYTER_HELP.md<cr>", desc = "Jupyter Help" },
+    },
+  },
+
+  -- Jupytext: Correction pour la détection des cellules
+  {
+    "GCBallesteros/jupytext.nvim",
+    lazy = false,
+    opts = {
+      custom_outputs = true,
+      style = "hydrogen", -- Le style hydrogen/percent est le meilleur pour la détection de cellules
+      output_extension = "py",
+      force_ft = "python",
     },
   },
 
@@ -51,18 +71,6 @@ return {
     },
   },
 
-  -- Jupytext: Permet d'éditer des .ipynb comme du texte (Markdown/Python)
-  {
-    "GCBallesteros/jupytext.nvim",
-    lazy = false,
-    opts = {
-      custom_outputs = true,
-      style = "markdown",
-      output_extension = "md",
-      force_ft = "markdown",
-    },
-  },
-
   -- Otter: Fournit l'LSP (completion, go-to-def) dans les blocs de code Markdown
   {
     "jmbuhr/otter.nvim",
@@ -81,33 +89,19 @@ return {
     "3rd/image.nvim",
     event = "VeryLazy",
     opts = {
-      backend = "kitty", -- Tentative avec kitty, s'adapte à beaucoup de terminaux modernes
+      backend = "kitty", 
       integrations = {
         markdown = {
           enabled = true,
           clear_in_insert_mode = false,
           download_remote_images = true,
           only_render_image_at_cursor = false,
-          filetypes = { "markdown", "quarto" },
+          filetypes = { "markdown", "quarto", "python" },
         },
       },
       max_width = 100,
       max_height = 12,
       window_overlap_clear_enabled = true,
-    },
-  },
-
-  -- Harmonisation des couleurs pour Molten
-  {
-    "AstroNvim/astrotheme",
-    optional = true,
-    opts = {
-      highlights = {
-        molten = {
-          MoltenOutputWin = { bg = "NONE" },
-          MoltenOutputWinBorder = { fg = "Primary" },
-        },
-      },
     },
   },
 }
