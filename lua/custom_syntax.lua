@@ -17,8 +17,8 @@ function _G.toggle_custom_syntax()
   end
 end
 
--- Raccourci clavier (Toggle) : <leader>ty (Syntax)
-vim.keymap.set("n", "<leader>ty", _G.toggle_custom_syntax, { desc = "Toggle Custom Obsidian Syntax" })
+-- Raccourci clavier (Toggle) : <leader>uy (User Syntax)
+vim.keymap.set("n", "<leader>uy", _G.toggle_custom_syntax, { desc = "Toggle Custom Obsidian Syntax" })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
