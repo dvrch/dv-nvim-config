@@ -1,62 +1,83 @@
 return {
-  -- Molten: Moteur d'exécution avec affichage inline
+  -- Molten: Configuration optimisée pour affichage direct
   {
     "benlubas/molten-nvim",
     version = "^1.0.0",
     build = ":UpdateRemotePlugins",
     init = function()
-      -- Affichage inline (sous les lignes)
-      vim.g.molten_auto_open_output = false
-      vim.g.molten_virt_text_output = true
-      vim.g.molten_virt_lines_off_by_1 = true
-      vim.g.molten_output_win_max_height = 15
+      -- Configuration de l'affichage inline
+      vim.g.molten_auto_open_output = true -- Affiche automatiquement le résultat
+      vim.g.molten_virt_text_output = true -- Texte virtuel pour les petits résultats
+      vim.g.molten_virt_lines_off_by_1 = false -- Affiche SUR la ligne, pas après
+      vim.g.molten_output_win_max_height = 20
+      vim.g.molten_wrap_output = true
+      vim.g.molten_auto_image_popup = true -- Pour les graphiques
+      
+      -- Configuration du kernel et des images
       vim.g.molten_image_provider = "image.nvim"
       vim.g.molten_default_kernel = "python3"
+      vim.g.molten_output_show_more = true
+      vim.g.molten_enter_output_behavior = "open_and_enter"
       
-      -- Auto-initialisation pour les fichiers .ipynb
+      -- Auto-init au chargement d'un notebook
       vim.api.nvim_create_autocmd("BufEnter", {
         pattern = "*.ipynb",
         callback = function()
-          -- Attend un peu que le buffer soit prêt
           vim.defer_fn(function()
-            -- Vérifie si un kernel est déjà initialisé
             if vim.fn.exists(":MoltenInfo") == 2 then
-              local status = vim.fn.execute("MoltenInfo")
-              if not status:match("python3") then
-                vim.cmd("MoltenInit python3")
-              end
+              pcall(vim.cmd, "silent! MoltenInit python3")
             end
-          end, 500)
+          end, 800)
         end,
       })
     end,
     keys = {
       { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Kernel" },
-      { "<leader>jc", ":MoltenReevaluateCell<cr>", desc = "Execute Cell" },
+      { "<leader>jc", ":MoltenEvaluateOperator<cr>", desc = "Execute Cell" },
       { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line" },
-      { "<leader>jd", ":MoltenDelete<cr>", desc = "Delete Output" },
-      { "<leader>jo", ":MoltenShowOutput<cr>", desc = "Show Output (Float)" },
+      { "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Execute Visual" },
+      { "<leader>jd", ":MoltenDelete<cr>", desc = "Delete ALL Outputs" },
+      { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "Enter Output Window" },
+      { "<leader>jh", ":MoltenHideOutput<cr>", desc = "Hide Output" },
+      { "<leader>jr", ":MoltenReevaluateAll<cr>", desc = "Re-run All Cells" },
     },
   },
 
-  -- Jupytext : DÉSACTIVÉ complètement pour éviter la création de fichiers .md/.py
+  -- Jupytext: Réactivé MAIS sans écriture sur disque
   {
     "GCBallesteros/jupytext.nvim",
-    enabled = false, -- ✅ DÉSACTIVÉ
+    lazy = false,
+    opts = {
+      custom_outputs = false, -- Pas d'output custom
+      style = "percent", -- Format standard # %%
+      output_extension = "py",
+      force_ft = "python",
+    },
+    config = function(_, opts)
+      require("jupytext").setup(opts)
+      
+      -- Hook pour empêcher l'écriture automatique des fichiers convertis
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.ipynb",
+        callback = function()
+          -- Supprime les fichiers .py/.md créés automatiquement
+          local base = vim.fn.expand("%:r")
+          local dir = vim.fn.expand("%:p:h")
+          vim.fn.delete(dir .. "/" .. base .. ".py")
+          vim.fn.delete(dir .. "/" .. base .. ".md")
+        end,
+      })
+    end,
   },
 
-  -- Quarto : Pour la détection des cellules dans les .ipynb sans conversion
+  -- Quarto: Pour la détection des cellules
   {
     "quarto-dev/quarto-nvim",
-    ft = { "quarto", "markdown" },
-    dependencies = {
-      "jmbuhr/otter.nvim",
-      "nvim-treesitter/nvim-treesitter",
-    },
+    ft = { "quarto", "markdown", "python" },
     opts = {
       lspFeatures = {
         languages = { "python", "bash" },
-        chunks = "curly",
+        chunks = "all",
       },
       codeRunner = {
         enabled = true,
@@ -65,18 +86,17 @@ return {
     },
   },
 
-  -- Otter : LSP dans les blocs de code
+  -- Otter: LSP et coloration dans les blocs
   {
     "jmbuhr/otter.nvim",
-    ft = { "quarto", "markdown" },
+    ft = { "quarto", "markdown", "python" },
     opts = {
-      buffers = {
-        set_filetype = true,
-      },
+      buffers = { set_filetype = true },
+      handle_leading_whitespace = true,
     },
   },
 
-  -- Image.nvim pour les graphiques
+  -- Image.nvim
   {
     "3rd/image.nvim",
     opts = {
@@ -84,7 +104,7 @@ return {
       integrations = {
         markdown = {
           enabled = true,
-          filetypes = { "markdown", "quarto" },
+          filetypes = { "markdown", "quarto", "python" },
         },
       },
     },
