@@ -6,14 +6,12 @@ function _G.toggle_custom_syntax()
   vim.g.custom_syntax_enabled = not vim.g.custom_syntax_enabled
   if vim.g.custom_syntax_enabled then
     vim.notify("Syntaxe Obsidienne ACTIVÉE", vim.log.levels.INFO)
-    -- On force le rechargement du fichier pour appliquer la syntaxe
     vim.cmd("edit!") 
   else
     vim.notify("Syntaxe Obsidienne DÉSACTIVÉE", vim.log.levels.WARN)
     vim.cmd("syntax clear")
-    -- On restaure le filetype pour que Treesitter/LazyVim reprennent la main
     vim.cmd("set filetype=" .. vim.bo.filetype)
-    vim.cmd("edit!") -- Recharge pour rafraîchir la coloration native
+    vim.cmd("edit!") 
   end
 end
 
@@ -23,8 +21,13 @@ vim.keymap.set("n", "<leader>uy", _G.toggle_custom_syntax, { desc = "Toggle Cust
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
   callback = function()
-    -- NE PAS appliquer si désactivé OU si c'est un fichier Jupyter/Python généré par Jupytext
-    if not vim.g.custom_syntax_enabled or vim.bo.filetype == "python" or vim.fn.expand("%:e") == "ipynb" then
+    -- EXCLUSION TOTALE pour les fichiers Jupyter convertis
+    local filename = vim.fn.expand("%:t")
+    if not vim.g.custom_syntax_enabled 
+       or vim.bo.filetype == "python" 
+       or vim.bo.filetype == "quarto"
+       or filename:match("demo_jupyter") 
+       or vim.fn.expand("%:e") == "ipynb" then
       return
     end
 
@@ -50,7 +53,6 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.api.nvim_set_hl(0, group, { fg = color })
       end
 
-      -- Application des règles
       vim.cmd([[syntax match ObsidianCapitalLetters /[A-Z]/]])
       vim.cmd([[syntax match ObsidianDelimiterOpen /[({[<]/]])
       vim.cmd([[syntax match ObsidianDelimiterClose /[)}\]>]/]])
