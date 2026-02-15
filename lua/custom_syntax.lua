@@ -1,35 +1,34 @@
 -- Variable globale pour l'état de la syntaxe personnalisée
 vim.g.custom_syntax_enabled = true
 
--- Fonction pour activer/désactiver
+-- Fonction pour activer/désactiver proprement
 function _G.toggle_custom_syntax()
   vim.g.custom_syntax_enabled = not vim.g.custom_syntax_enabled
   if vim.g.custom_syntax_enabled then
     vim.notify("Syntaxe Obsidienne ACTIVÉE", vim.log.levels.INFO)
-    vim.cmd("doautocmd FileType") -- Déclenche la recharge pour markdown/text
+    -- On force le rechargement du fichier pour appliquer la syntaxe
+    vim.cmd("edit!") 
   else
     vim.notify("Syntaxe Obsidienne DÉSACTIVÉE", vim.log.levels.WARN)
-    vim.cmd("syntax clear") -- Nettoie la syntaxe actuelle
-    -- On recharge le FileType natif après un court délai
-    vim.defer_fn(function()
-      vim.cmd("set filetype=" .. vim.bo.filetype)
-    end, 50)
+    vim.cmd("syntax clear")
+    -- On restaure le filetype pour que Treesitter/LazyVim reprennent la main
+    vim.cmd("set filetype=" .. vim.bo.filetype)
+    vim.cmd("edit!") -- Recharge pour rafraîchir la coloration native
   end
 end
 
--- Raccourci clavier (Toggle) : <leader>uy (User Syntax)
+-- Raccourci clavier (Toggle) : <leader>uy
 vim.keymap.set("n", "<leader>uy", _G.toggle_custom_syntax, { desc = "Toggle Custom Obsidian Syntax" })
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
   callback = function()
-    -- Ne pas appliquer si désactivé ou si c'est un buffer de notebook géré par Quarto/Jupytext
-    if not vim.g.custom_syntax_enabled or vim.bo.filetype == "quarto" or vim.fn.expand("%:e") == "ipynb" then
+    -- NE PAS appliquer si désactivé OU si c'est un fichier Jupyter/Python généré par Jupytext
+    if not vim.g.custom_syntax_enabled or vim.bo.filetype == "python" or vim.fn.expand("%:e") == "ipynb" then
       return
     end
 
     vim.defer_fn(function()
-      -- Define highlight groups based on Obsidian plugin colors
       local hls = {
         ObsidianComment = "#39FF14",
         ObsidianNumber = "#DA70D6",
@@ -51,7 +50,7 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.api.nvim_set_hl(0, group, { fg = color })
       end
 
-      -- Apply syntax matches
+      -- Application des règles
       vim.cmd([[syntax match ObsidianCapitalLetters /[A-Z]/]])
       vim.cmd([[syntax match ObsidianDelimiterOpen /[({[<]/]])
       vim.cmd([[syntax match ObsidianDelimiterClose /[)}\]>]/]])

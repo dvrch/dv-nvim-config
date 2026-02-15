@@ -1,51 +1,52 @@
 return {
-  -- Molten: Le moteur d'exécution interactif (remplaçant de Magma)
+  -- Molten: Configuration avancée pour l'affichage des résultats et délimitations
   {
     "benlubas/molten-nvim",
     enabled = true,
     build = ":UpdateRemotePlugins",
     init = function()
-      -- Paramètres pour une meilleure expérience visuelle
-      vim.g.molten_auto_open_output = false
+      -- Paramètres pour l'affichage automatique des résultats
+      vim.g.molten_auto_open_output = true -- Affiche le résultat automatiquement ! ✅
       vim.g.molten_image_provider = "image.nvim"
       vim.g.molten_output_win_max_height = 12
-      vim.g.molten_virt_text_output = true
+      vim.g.molten_virt_text_output = true 
       vim.g.molten_virt_lines_off_by_1 = true
       
-      -- Noyau par défaut pour éviter de demander à chaque fois
+      -- Noyau par défaut
       vim.g.molten_default_kernel = "python3"
       
-      -- Sauvegarde auto des résultats dans le fichier (si supporté)
-      vim.g.molten_save_init_args = true
-      vim.g.molten_auto_init_behavior = "init_import"
+      -- Délimitations visuelles (VirtColumn) pour les cellules
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = { "python", "quarto", "markdown" },
+        callback = function()
+          -- On simule des lignes horizontales via le colorcolumn ou des signes
+          vim.fn.matchadd("Conceal", "^# %%", 10, -1, { conceal = "━" })
+          vim.opt_local.conceallevel = 2
+        end,
+      })
     end,
     keys = {
-      { "<leader>mj", ":MoltenInit<cr>", desc = "Initialize Molten" },
-      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Python3 Kernel (Default)" },
-      { "<leader>me", ":MoltenEvaluateOperator<cr>", desc = "Evaluate Operator" },
+      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Python3 Kernel" },
       { "<leader>rl", ":MoltenEvaluateLine<cr>", desc = "Evaluate Line" },
       { "<leader>rc", ":MoltenReevaluateCell<cr>", desc = "Re-evaluate Cell" },
       { "<leader>rd", ":MoltenDelete<cr>", desc = "Delete Cell Output" },
-      { "<leader>rv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Evaluate Visual" },
-      { "<leader>oh", ":MoltenHideOutput<cr>", desc = "Hide Output" },
       { "<leader>os", ":MoltenShowOutput<cr>", desc = "Show Output" },
-      { "<leader>mh", ":vsplit ~/.config/nvim/JUPYTER_HELP.md<cr>", desc = "Jupyter Help" },
     },
   },
 
-  -- Jupytext: Correction pour la détection des cellules
+  -- Jupytext: On force le format Hydrogen (# %%) pour une détection parfaite
   {
     "GCBallesteros/jupytext.nvim",
     lazy = false,
     opts = {
       custom_outputs = true,
-      style = "hydrogen", -- Le style hydrogen/percent est le meilleur pour la détection de cellules
+      style = "hydrogen", 
       output_extension = "py",
-      force_ft = "python",
+      force_ft = "python", -- On utilise python pour avoir la coloration syntaxique du code !
     },
   },
 
-  -- Quarto: Pour une expérience Notebook complète (Markdown + Code)
+  -- Quarto: Crucial pour la coloration mixte (Markdown + Python)
   {
     "quarto-dev/quarto-nvim",
     dependencies = {
@@ -54,15 +55,8 @@ return {
     },
     opts = {
       lspFeatures = {
-        languages = { "python", "r", "julia", "bash" },
+        languages = { "python", "bash" },
         chunks = "all",
-        diagnostics = {
-          enabled = true,
-          triggers = { "BufWritePost" },
-        },
-        completion = {
-          enabled = true,
-        },
       },
       codeRunner = {
         enabled = true,
@@ -71,37 +65,14 @@ return {
     },
   },
 
-  -- Otter: Fournit l'LSP (completion, go-to-def) dans les blocs de code Markdown
+  -- Otter: Paint l'LSP et la coloration syntaxique à l'intérieur des blocs
   {
     "jmbuhr/otter.nvim",
-    dependencies = {
-      "nvim-treesitter/nvim-treesitter",
-    },
     opts = {
       buffers = {
         set_filetype = true,
+        write_to_disk = false,
       },
-    },
-  },
-
-  -- Gestion des images (pour voir les plots de matplotlib, etc.)
-  {
-    "3rd/image.nvim",
-    event = "VeryLazy",
-    opts = {
-      backend = "kitty", 
-      integrations = {
-        markdown = {
-          enabled = true,
-          clear_in_insert_mode = false,
-          download_remote_images = true,
-          only_render_image_at_cursor = false,
-          filetypes = { "markdown", "quarto", "python" },
-        },
-      },
-      max_width = 100,
-      max_height = 12,
-      window_overlap_clear_enabled = true,
     },
   },
 }
