@@ -1,67 +1,71 @@
+-- Variable globale pour l'état de la syntaxe personnalisée
+vim.g.custom_syntax_enabled = true
+
+-- Fonction pour activer/désactiver
+function _G.toggle_custom_syntax()
+  vim.g.custom_syntax_enabled = not vim.g.custom_syntax_enabled
+  if vim.g.custom_syntax_enabled then
+    vim.notify("Syntaxe Obsidienne ACTIVÉE", vim.log.levels.INFO)
+    vim.cmd("doautocmd FileType") -- Déclenche la recharge pour markdown/text
+  else
+    vim.notify("Syntaxe Obsidienne DÉSACTIVÉE", vim.log.levels.WARN)
+    vim.cmd("syntax clear") -- Nettoie la syntaxe actuelle
+    -- On recharge le FileType natif après un court délai
+    vim.defer_fn(function()
+      vim.cmd("set filetype=" .. vim.bo.filetype)
+    end, 50)
+  end
+end
+
+-- Raccourci clavier (Toggle) : <leader>ty (Syntax)
+vim.keymap.set("n", "<leader>ty", _G.toggle_custom_syntax, { desc = "Toggle Custom Obsidian Syntax" })
+
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "markdown", "text" },
   callback = function()
+    -- Ne pas appliquer si désactivé ou si c'est un buffer de notebook géré par Quarto/Jupytext
+    if not vim.g.custom_syntax_enabled or vim.bo.filetype == "quarto" or vim.fn.expand("%:e") == "ipynb" then
+      return
+    end
+
     vim.defer_fn(function()
       -- Define highlight groups based on Obsidian plugin colors
-      vim.api.nvim_set_hl(0, "ObsidianComment", { fg = "#39FF14" })
-      vim.api.nvim_set_hl(0, "ObsidianNumber", { fg = "#DA70D6" })
-      vim.api.nvim_set_hl(0, "ObsidianOperator", { fg = "#FF4136" })
-      vim.api.nvim_set_hl(0, "ObsidianPunctuation", { fg = "#00BFFF" })
-      vim.api.nvim_set_hl(0, "ObsidianClassName", { fg = "#00FFFF" })
-      vim.api.nvim_set_hl(0, "ObsidianFunctionCall", { fg = "#7FFF00" })
-      vim.api.nvim_set_hl(0, "ObsidianSentenceCaps", { fg = "#9f8a13" })
-      vim.api.nvim_set_hl(0, "ObsidianCapitalLetters", { fg = "#FF69B4" })
-      vim.api.nvim_set_hl(0, "ObsidianDelimiterOpen", { fg = "#b35a01" })
-      vim.api.nvim_set_hl(0, "ObsidianDelimiterClose", { fg = "#FF4500" })
-      vim.api.nvim_set_hl(0, "ObsidianKeyword", { fg = "#FF00FF" })
-      vim.api.nvim_set_hl(0, "ObsidianTagPattern", { fg = "#FFFF00" })
-      vim.api.nvim_set_hl(0, "ObsidianDatePattern", { fg = "#ADFF2F" })
-      vim.api.nvim_set_hl(0, "ObsidianString", { fg = "#a50f5f" })
-      vim.api.nvim_set_hl(0, "ObsidianParens", { fg = "#FF851B" })
+      local hls = {
+        ObsidianComment = "#39FF14",
+        ObsidianNumber = "#DA70D6",
+        ObsidianOperator = "#FF4136",
+        ObsidianPunctuation = "#00BFFF",
+        ObsidianClassName = "#00FFFF",
+        ObsidianFunctionCall = "#7FFF00",
+        ObsidianSentenceCaps = "#9f8a13",
+        ObsidianCapitalLetters = "#FF69B4",
+        ObsidianDelimiterOpen = "#b35a01",
+        ObsidianDelimiterClose = "#FF4500",
+        ObsidianKeyword = "#FF00FF",
+        ObsidianTagPattern = "#FFFF00",
+        ObsidianDatePattern = "#ADFF2F",
+        ObsidianString = "#a50f5f",
+        ObsidianParens = "#FF851B",
+      }
+      for group, color in pairs(hls) do
+        vim.api.nvim_set_hl(0, group, { fg = color })
+      end
 
-      -- Apply syntax matches in order of priority
-      -- Dans Vim, l'ordre de définition détermine la priorité (les derniers définis ont priorité)
-
-      -- 1. Éléments de base (faible priorité)
+      -- Apply syntax matches
       vim.cmd([[syntax match ObsidianCapitalLetters /[A-Z]/]])
       vim.cmd([[syntax match ObsidianDelimiterOpen /[({[<]/]])
       vim.cmd([[syntax match ObsidianDelimiterClose /[)}\]>]/]])
       vim.cmd([[syntax match ObsidianPunctuation /[.,;:?!]/]])
       vim.cmd([[syntax match ObsidianOperator /[-+*/%=<>!&|^~]/]])
-
-      -- 2. Nombres (priorité moyenne-faible)
       vim.cmd([[syntax match ObsidianNumber /\<\d\+\>/]])
       vim.cmd([[syntax match ObsidianNumber /\<\d\+\.\d\+\>/]])
-
-      -- 3. Régions avec contenu (priorité moyenne)
-      -- vim.cmd([[syntax region ObsidianString start=/"/ skip=/\\"/ end=/"/ contains=ObsidianCapitalLetters,ObsidianNumber]])
-      -- vim.cmd([[syntax region ObsidianString start=/(/ skip=/\\"/ end=/)/ contains=ObsidianCapitalLetters,ObsidianNumber]])
-      -- vim.cmd([[syntax region ObsidianString start=/[/ skip=/\\"/ end=/]/ contains=ObsidianCapitalLetters,ObsidianNumber]])
-      -- Suppression de la règle pour les guillemets simples/apostrophes pour éviter les conflits avec "l'importance"
-
-      -- 4. Mots-clés et fonctions (priorité moyenne-haute)
-      vim.cmd(
-        [[syntax match ObsidianKeyword /\<\(and\|as\|assert\|def\|class\|if\|else\|for\|while\|return\|import\|from\|with\|try\|except\|in\|is\|not\|or\)\>/]]
-      )
+      vim.cmd([[syntax match ObsidianKeyword /\<\(and\|as\|assert\|def\|class\|if\|else\|for\|while\|return\|import\|from\|with\|try\|except\|in\|is\|not\|or\)\>/]])
       vim.cmd([[syntax match ObsidianClassName /\<class\s\+\w\+/]])
       vim.cmd([[syntax match ObsidianFunctionCall /\w\+\s*(/me=e-1]])
-
-      -- 5. Majuscules en début de phrase (priorité haute)
       vim.cmd([[syntax match ObsidianSentenceCaps /\(^\|[.!?]\s\+\)[A-Z]/hs=e]])
-
-      -- 6. Patterns spéciaux (priorité très haute)
       vim.cmd([[syntax match ObsidianDatePattern /\d\{4\}-\d\{2\}-\d\{2\}/]])
       vim.cmd([[syntax match ObsidianTagPattern /#\w\+/]])
-
-      -- 7. Commentaires (priorité maximale)
       vim.cmd([[syntax match ObsidianComment /#.*$/]])
-
-      -- Guillemets et underscores comme délimiteurs spéciaux
-      vim.cmd([[syntax match ObsidianDelimiterOpen /"/ contained]])
-      vim.cmd([[syntax match ObsidianDelimiterClose /"/ contained]])
-      vim.cmd([[syntax match ObsidianDelimiterOpen /_/ contained]])
-      vim.cmd([[syntax match ObsidianDelimiterClose /_/ contained]])
     end, 100)
   end,
 })
-
