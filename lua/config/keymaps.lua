@@ -33,10 +33,9 @@ end, { desc = "Open in VSCode" })
 vim.keymap.set("n", "<leader>oz", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    -- Emploi de nohup pour détacher complètement du processus parent nvim
-    local cmd = "nohup /home/kd/.local/bin/zed " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
-    os.execute(cmd)
-    vim.notify("⚡ Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
+    -- On tente un jobstart plus standard avec le chemin absolu
+    vim.fn.jobstart({ "/home/kd/.local/bin/zed", file_path }, { detach = true })
+    vim.notify("⚡ Tentative d'ouverture Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
   else
     vim.notify("Aucun fichier à ouvrir.", vim.log.levels.WARN)
   end
