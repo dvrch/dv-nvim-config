@@ -33,9 +33,10 @@ end, { desc = "Open in VSCode" })
 vim.keymap.set("n", "<leader>oz", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    -- On tente un jobstart plus standard avec le chemin absolu
-    vim.fn.jobstart({ "/home/kd/.local/bin/zed", file_path }, { detach = true })
-    vim.notify("⚡ Tentative d'ouverture Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
+    -- Chemin exact récupéré de l'image (Propriétés de l'application)
+    local zed_path = "/home/kd/.local/zed.app/bin/zed"
+    vim.fn.jobstart({ zed_path, file_path }, { detach = true })
+    vim.notify("⚡ Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
   else
     vim.notify("Aucun fichier à ouvrir.", vim.log.levels.WARN)
   end
