@@ -8,6 +8,11 @@ vim.keymap.set("n", "<leader>db", ":Alpha<CR>", { desc = "Open Dashboard" })
 -- Open a terminal
 vim.keymap.set("n", "<leader>t", ":terminal<CR>", { desc = "Open Terminal" })
 
+-- Condition de démarrage pour Gemini (Désactivé par défaut)
+if vim.g.gemini_autolaunch == nil then
+  vim.g.gemini_autolaunch = false
+end
+
 -- Toggle Gemini auto-launch
 vim.keymap.set("n", "<leader>gT", function()
   vim.g.gemini_autolaunch = not vim.g.gemini_autolaunch
@@ -29,18 +34,40 @@ vim.keymap.set("n", "<leader>ov", function()
   end
 end, { desc = "Open in VSCode" })
 
--- Open current file in Zed (leader oz)
+-- Ouvrir dans Zed (leader oz) - Fix avec os.execute
 vim.keymap.set("n", "<leader>oz", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    -- Chemin exact récupéré de l'image (Propriétés de l'application)
-    local zed_path = "/home/kd/.local/zed.app/bin/zed"
-    vim.fn.jobstart({ zed_path, file_path }, { detach = true })
-    vim.notify("⚡ Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
+    local cmd = "nohup /home/kd/.local/zed.app/bin/zed " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
+    os.execute(cmd)
+    vim.notify("⚡ Zed (Ouverture forcée): " .. vim.fn.pathshorten(file_path))
   else
     vim.notify("Aucun fichier à ouvrir.", vim.log.levels.WARN)
   end
 end, { desc = "Open in Zed" })
+
+-- Ouvrir dans Obsidian Standard (leader oo)
+vim.keymap.set("n", "<leader>oo", function()
+  local file_path = vim.fn.expand("%:p")
+  if file_path and file_path ~= "" then
+    local cmd = "nohup obsidian " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
+    os.execute(cmd)
+    vim.notify("💎 Obsidian: " .. vim.fn.pathshorten(file_path))
+  end
+end, { desc = "Open in Obsidian" })
+
+-- Ouvrir dans Obsidian LITE (leader oL) - Sans plugins tiers
+vim.keymap.set("n", "<leader>oL", function()
+  local file_path = vim.fn.expand("%:p")
+  if file_path and file_path ~= "" then
+    -- On utilise un répertoire de config séparé pour un Obsidian "propre"
+    local config_dir = vim.fn.expand("~/.obsidian-lite")
+    vim.fn.mkdir(config_dir, "p")
+    local cmd = "nohup obsidian --config-dir=" .. vim.fn.shellescape(config_dir) .. " " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
+    os.execute(cmd)
+    vim.notify("💎 Obsidian LITE (Safe Mode): " .. vim.fn.pathshorten(file_path))
+  end
+end, { desc = "Open in Obsidian LITE" })
 
 -- Locate current file in explorer
 vim.keymap.set("n", "<leader>oe", function()
