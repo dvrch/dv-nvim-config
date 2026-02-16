@@ -27,14 +27,20 @@ Tu verras : "Kernel python3 initialized"
 | Touches | Action | Quand l'utiliser |
 |:---|:---|:---|
 | **`<leader>mk`** | 🐍 **Initialiser le Kernel** | **AU DÉBUT** (une fois) |
-| **`<leader>jc`** | ▶️ Exécuter la cellule | Usage principal |
-| **`<leader>ja`** | 🚀 Exécuter TOUT | Pour tester tout le notebook |
+| **`<leader>jc`** | ▶️ Exécuter la cellule | Tout le bloc # %% |
+| **`<leader>jv`** | ▶️ **Exécuter SÉLECTION** | Sélectionne avec `V` puis `<leader>jv` |
+| **`<leader>ja`** | 🚀 Exécuter TOUT | Séquentiel et propre |
 | **`<leader>jx`** | Exécuter une ligne | Débogage rapide |
-| **`<leader>jv`** | Exécuter sélection | En mode visuel |
 
 ---
 
-## 🗑️ NETTOYAGE
+## 🖥️ ÉDITEURS EXTERNES
+
+| Touches | Action |
+|:---|:---|
+| **`<leader>ov`** | Ouvrir dans **VSCode** |
+| **`<leader>oz`** | Ouvrir dans **Zed** |
+| **`<leader>gT`** | Toggle Gemini (Auto-startup) |
 
 | Touches | Action |
 |:---|:---|

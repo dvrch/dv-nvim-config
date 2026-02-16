@@ -5,6 +5,7 @@ package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
 -- Configuration Pieces AVANT le chargement des plugins
 vim.fn.setenv("PIECES_OS_PORT", "39300")
 vim.g.PIECES_OS_PORT = 39300
+vim.g.gemini_autolaunch = false -- Désactivé par défaut
 
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")

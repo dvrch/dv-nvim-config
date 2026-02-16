@@ -8,19 +8,17 @@ vim.keymap.set("n", "<leader>db", ":Alpha<CR>", { desc = "Open Dashboard" })
 -- Open a terminal
 vim.keymap.set("n", "<leader>t", ":terminal<CR>", { desc = "Open Terminal" })
 
--- Toggle Gemini auto-launch (désactivé par défaut pour performances)
-vim.g.gemini_autolaunch = false
-
+-- Toggle Gemini auto-launch
 vim.keymap.set("n", "<leader>gT", function()
   vim.g.gemini_autolaunch = not vim.g.gemini_autolaunch
   local status = vim.g.gemini_autolaunch and "ACTIVÉ" or "DÉSACTIVÉ"
   vim.notify("🤖 Gemini auto-launch: " .. status, vim.log.levels.INFO)
 end, { desc = "Toggle Gemini Auto-Launch" })
 
--- Open Gemini CLI manually
+-- Open Gemini CLI manually (leader gc)
 vim.keymap.set("n", "<leader>gc", ":tabnew | terminal gemini<CR>", { desc = "Open Gemini CLI" })
 
--- Open current file in VSCode
+-- Open current file in VSCode (leader ov)
 vim.keymap.set("n", "<leader>ov", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
@@ -31,11 +29,12 @@ vim.keymap.set("n", "<leader>ov", function()
   end
 end, { desc = "Open in VSCode" })
 
--- Open current file in Zed
+-- Open current file in Zed (leader oz) - Utilise le chemin absolu
 vim.keymap.set("n", "<leader>oz", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    vim.fn.jobstart({ "zed", file_path }, { detach = true })
+    -- On utilise l'exécutable trouvé précédemment
+    vim.fn.jobstart({ "/home/kd/.local/bin/zed", file_path }, { detach = true })
     vim.notify("⚡ Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
   else
     vim.notify("Aucun fichier à ouvrir.", vim.log.levels.WARN)

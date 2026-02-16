@@ -30,7 +30,10 @@ M.setup = function()
     pattern = "*",
     group = api.nvim_create_augroup("user_startup", { clear = true }),
     callback = function()
-      vim.schedule(run_startup_sequence) -- Call the function
+      -- Ne lancer la séquence de démarrage QUE si gemini_autolaunch est activé
+      if vim.g.gemini_autolaunch == true then
+        vim.schedule(run_startup_sequence)
+      end
     end,
   })
 

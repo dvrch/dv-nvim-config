@@ -25,6 +25,10 @@ return {
       
       -- Commande: Run All SIMPLE (sans vérifications compliquées)
       vim.api.nvim_create_user_command("MoltenRunAll", function()
+        -- Sauvegarder le réglage auto_open
+        local old_auto_open = vim.g.molten_auto_open_output
+        vim.g.molten_auto_open_output = false
+        
         -- Nettoyer d'abord
         vim.cmd("silent! %MoltenDelete")
         
@@ -40,6 +44,7 @@ return {
         
         if #cell_starts == 0 then
           vim.notify("❌ Aucune cellule détectée (format # %%)", vim.log.levels.ERROR)
+          vim.g.molten_auto_open_output = old_auto_open
           return
         end
         
@@ -50,20 +55,26 @@ return {
         local function next_cell()
           if current > #cell_starts then
             vim.notify("✅ Terminé!", vim.log.levels.INFO)
+            -- Restaurer le réglage original
+            vim.g.molten_auto_open_output = old_auto_open
             return
           end
           
           vim.api.nvim_win_set_cursor(0, {cell_starts[current], 0})
           vim.cmd("silent! MoltenReevaluateCell")
           current = current + 1
-          vim.defer_fn(next_cell, 1200) -- 1.2s entre cellules
+          vim.defer_fn(next_cell, 1500) -- Délai légèrement augmenté pour stabilité
         end
         
         next_cell()
       end, {})
       
-      -- PAS D'AUTO-INIT ! L'utilisateur initialise manuellement avec <leader>mk
-      -- Cela évite toute multiplication de kernels
+      -- Nettoyage automatique à la fermeture pour éviter les kernels zombies
+      vim.api.nvim_create_autocmd("VimLeavePre", {
+        callback = function()
+          vim.fn.system("pkill -9 -f ipykernel")
+        end
+      })
     end,
     keys = {
       -- INITIALISATION MANUELLE UNIQUEMENT
