@@ -56,18 +56,47 @@ vim.keymap.set("n", "<leader>oo", function()
   end
 end, { desc = "Open in Obsidian" })
 
--- Ouvrir dans Obsidian LITE (leader oL) - Sans plugins tiers
+-- Ouvrir dans Obsidian LITE (leader oL) - SANS plugins tiers
 vim.keymap.set("n", "<leader>oL", function()
   local file_path = vim.fn.expand("%:p")
-  if file_path and file_path ~= "" then
-    -- On utilise un répertoire de config séparé pour un Obsidian "propre"
-    local config_dir = vim.fn.expand("~/.obsidian-lite")
-    vim.fn.mkdir(config_dir, "p")
-    local cmd = "nohup obsidian --config-dir=" .. vim.fn.shellescape(config_dir) .. " " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
-    os.execute(cmd)
-    vim.notify("💎 Obsidian LITE (Safe Mode): " .. vim.fn.pathshorten(file_path))
+  if file_path == "" then return end
+  
+  -- 1. Trouver la racine du coffre (vault root)
+  local vault_root = vim.fn.fnamemodify(file_path, ":h")
+  while vault_root ~= "/" do
+    if vim.fn.isdirectory(vault_root .. "/.obsidian") == 1 then
+      break
+    end
+    vault_root = vim.fn.fnamemodify(vault_root, ":h")
   end
-end, { desc = "Open in Obsidian LITE" })
+
+  if vault_root == "/" then
+    vim.notify("❌ Racine du coffre Obsidian non trouvée.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- 2. Créer un coffre "miroir" LITE (Shadow Vault)
+  local lite_vault = vim.fn.expand("~/.obsidian-lite-vault")
+  vim.fn.system("rm -rf " .. vim.fn.shellescape(lite_vault))
+  vim.fn.mkdir(lite_vault, "p")
+
+  -- 3. Symlinker tout SAUF le dossier .obsidian
+  -- Cela force Obsidian à ouvrir le dossier comme un nouveau coffre sans plugins
+  local items = vim.fn.glob(vault_root .. "/*", false, true)
+  for _, item in ipairs(items) do
+    local name = vim.fn.fnamemodify(item, ":t")
+    if name ~= ".obsidian" then
+      vim.fn.system(string.format("ln -s %s %s/%s", vim.fn.shellescape(item), vim.fn.shellescape(lite_vault), vim.fn.shellescape(name)))
+    end
+  end
+
+  -- 4. Lancer Obsidian sur ce coffre miroir
+  local relative_file = file_path:sub(#vault_root + 2)
+  local cmd = string.format("nohup obsidian %s/%s > /dev/null 2>&1 &", vim.fn.shellescape(lite_vault), vim.fn.shellescape(relative_file))
+  os.execute(cmd)
+  
+  vim.notify("💎 Obsidian LITE (Safe Mode) : Coffre miroir créé sans plugins.", vim.log.levels.INFO)
+end, { desc = "Open in Obsidian LITE (No Plugins)" })
 
 -- Locate current file in explorer
 vim.keymap.set("n", "<leader>oe", function()
