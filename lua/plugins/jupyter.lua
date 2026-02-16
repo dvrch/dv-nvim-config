@@ -1,11 +1,11 @@
 return {
-  -- Molten: Configuration avec prévention de kernels multiples
+  -- Molten: Configuration MINIMALISTE sans auto-init
   {
     "benlubas/molten-nvim",
     version = "^1.0.0",
     build = ":UpdateRemotePlugins",
     init = function()
-      -- Configuration de l'affichage
+      -- Configuration affichage
       vim.g.molten_auto_open_output = true
       vim.g.molten_virt_text_output = true
       vim.g.molten_virt_lines_off_by_1 = false
@@ -15,169 +15,100 @@ return {
       vim.g.molten_image_provider = "image.nvim"
       vim.g.molten_output_show_more = true
       vim.g.molten_enter_output_behavior = "open_and_enter"
-      vim.g.molten_use_border_highlights = true
       
-      -- Commande: Nettoyer tous les kernels zombies
-      vim.api.nvim_create_user_command("MoltenCleanKernels", function()
+      -- Commande: Nettoyer TOUS les kernels (tue les process Python)
+      vim.api.nvim_create_user_command("MoltenKillAll", function()
         vim.cmd("MoltenDeinit")
-        vim.notify("🧹 Kernels nettoyés", vim.log.levels.INFO)
+        vim.fn.system("pkill -f ipykernel")
+        vim.notify("💀 Tous les kernels tués", vim.log.levels.WARN)
       end, {})
       
-      -- Commande: Supprimer TOUS les outputs
-      vim.api.nvim_create_user_command("MoltenDeleteAllOutputs", function()
+      -- Commande: Run All SIMPLE (sans vérifications compliquées)
+      vim.api.nvim_create_user_command("MoltenRunAll", function()
+        -- Nettoyer d'abord
         vim.cmd("silent! %MoltenDelete")
-        vim.notify("🗑️ Tous les outputs supprimés", vim.log.levels.INFO)
-      end, {})
-      
-      -- Commande: Run All Clean (SANS affichage MoltenInfo)
-      vim.api.nvim_create_user_command("MoltenRunAllClean", function()
-        -- Pas d'affichage de MoltenInfo pour éviter la boucle
         
-        -- 1. Vérifier que Molten est initialisé (sans afficher)
-        local initialized = false
-        local ok, result = pcall(vim.fn.execute, "MoltenInfo")
+        -- Trouver les cellules
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local cell_starts = {}
         
-        if ok and result then
-          initialized = result:match("Initialized: true") ~= nil
+        for i, line in ipairs(lines) do
+          if line:match("^# %%") then
+            table.insert(cell_starts, i)
+          end
         end
         
-        if not initialized then
-          vim.notify("⚠️ Initialisation du kernel...", vim.log.levels.WARN)
-          vim.cmd("silent! MoltenInit python3")
-          vim.defer_fn(function()
-            vim.cmd("MoltenRunAllClean")
-          end, 2000)
+        if #cell_starts == 0 then
+          vim.notify("❌ Aucune cellule détectée (format # %%)", vim.log.levels.ERROR)
           return
         end
         
-        -- 2. Supprimer outputs
-        vim.cmd("silent! %MoltenDelete")
-        vim.notify("🧹 Nettoyage + Exécution...", vim.log.levels.INFO)
+        vim.notify("🚀 Exécution de " .. #cell_starts .. " cellules", vim.log.levels.INFO)
         
-        -- 3. Exécuter cellules
-        vim.defer_fn(function()
-          local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-          local cell_starts = {}
-          
-          for i, line in ipairs(lines) do
-            if line:match("^# %%") then
-              table.insert(cell_starts, i)
-            end
-          end
-          
-          if #cell_starts == 0 then
-            vim.notify("❌ Aucune cellule (# %%)", vim.log.levels.WARN)
+        -- Exécution séquentielle
+        local current = 1
+        local function next_cell()
+          if current > #cell_starts then
+            vim.notify("✅ Terminé!", vim.log.levels.INFO)
             return
           end
           
-          vim.notify("🚀 " .. #cell_starts .. " cellules...", vim.log.levels.INFO)
-          
-          local current_cell = 1
-          local function execute_next_cell()
-            if current_cell > #cell_starts then
-              vim.notify("✅ Terminé!", vim.log.levels.INFO)
-              return
-            end
-            
-            vim.api.nvim_win_set_cursor(0, {cell_starts[current_cell], 0})
-            vim.cmd("silent! MoltenReevaluateCell") -- Silent pour pas de popup
-            
-            current_cell = current_cell + 1
-            vim.defer_fn(execute_next_cell, 1000)
-          end
-          
-          execute_next_cell()
-        end, 500)
+          vim.api.nvim_win_set_cursor(0, {cell_starts[current], 0})
+          vim.cmd("silent! MoltenReevaluateCell")
+          current = current + 1
+          vim.defer_fn(next_cell, 1200) -- 1.2s entre cellules
+        end
+        
+        next_cell()
       end, {})
       
-      -- Auto-initialisation STRICTE (une seule fois par session Neovim)
-      local global_kernel_initialized = false
-      
-      vim.api.nvim_create_autocmd("FileType", {
-        pattern = "python",
-        callback = function()
-          -- Ne s'exécute qu'une seule fois globalement
-          if global_kernel_initialized then
-            return
-          end
-          
-          local filename = vim.fn.expand("%:t")
-          if not filename:match("%.ipynb") then
-            return
-          end
-          
-          global_kernel_initialized = true
-          
-          vim.defer_fn(function()
-            local ok, result = pcall(vim.fn.execute, "MoltenInfo")
-            if ok and result and result:match("Initialized: true") then
-              return
-            end
-            
-            vim.cmd("silent! MoltenInit python3")
-            vim.notify("🐍 Kernel initialisé", vim.log.levels.INFO)
-          end, 1500)
-        end,
-      })
+      -- PAS D'AUTO-INIT ! L'utilisateur initialise manuellement avec <leader>mk
+      -- Cela évite toute multiplication de kernels
     end,
     keys = {
-      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init/Restart Kernel" },
-      { "<leader>mK", ":MoltenCleanKernels<cr>", desc = "Clean All Kernels" },
+      -- INITIALISATION MANUELLE UNIQUEMENT
+      { "<leader>mk", ":MoltenInit python3<cr>", desc = "🐍 Init Kernel (MANUEL)" },
+      { "<leader>mK", ":MoltenKillAll<cr>", desc = "💀 Kill ALL Kernels" },
       
-      { "<leader>jc", ":MoltenReevaluateCell<cr>", desc = "Execute CELL (P1)" },
-      { "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Execute SELECTION (P2)" },
-      { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line (P3)" },
+      -- EXÉCUTION
+      { "<leader>jc", ":MoltenReevaluateCell<cr>", desc = "▶️ Execute CELL" },
+      { "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "▶️ Execute SELECTION" },
+      { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "▶️ Execute Line" },
       
-      { "<leader>ja", ":MoltenRunAllClean<cr>", desc = "Run All Clean" },
+      -- RUN ALL (version simple)
+      { "<leader>ja", ":MoltenRunAll<cr>", desc = "🚀 Run ALL Cells" },
       
-      { "<leader>jd", ":MoltenDelete<cr>", desc = "Delete Current Output" },
-      { "<leader>jD", ":MoltenDeleteAllOutputs<cr>", desc = "Delete ALL Outputs" },
-      { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "Open Output" },
-      { "<leader>jh", ":MoltenHideOutput<cr>", desc = "Hide Output" },
+      -- OUTPUTS
+      { "<leader>jd", ":MoltenDelete<cr>", desc = "🗑️ Delete Current Output" },
+      { "<leader>jD", ":silent! %MoltenDelete<cr>", desc = "🗑️ Delete ALL Outputs" },
+      { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "📊 Open Output" },
       
-      { "<leader>ji", ":MoltenInterrupt<cr>", desc = "Interrupt" },
+      -- INTERRUPTION
+      { "<leader>ji", ":MoltenInterrupt<cr>", desc = "⏸️ Interrupt" },
     },
   },
 
+  -- Jupytext: Minimal config
   {
     "GCBallesteros/jupytext.nvim",
     lazy = false,
     opts = {
       custom_outputs = false,
-      style = "percent",
+      style = "percent", -- Format # %%
       output_extension = "py",
       force_ft = "python",
     },
-    config = function(_, opts)
-      require("jupytext").setup(opts)
-      
-      vim.api.nvim_create_autocmd("BufWritePost", {
-        pattern = "*.ipynb",
-        callback = function()
-          vim.defer_fn(function()
-            local base = vim.fn.expand("%:r")
-            local dir = vim.fn.expand("%:p:h")
-            os.remove(dir .. "/" .. base .. ".py")
-            os.remove(dir .. "/" .. base .. ".md")
-          end, 100)
-        end,
-      })
-    end,
   },
 
+  -- Autres plugins (simplifiés)
   {
     "quarto-dev/quarto-nvim",
-    ft = { "quarto", "markdown", "python" },
-    opts = {
-      lspFeatures = { languages = { "python", "bash" }, chunks = "all" },
-      codeRunner = { enabled = true, default_method = "molten" },
-    },
+    enabled = false, -- Désactivé car cause des interférences
   },
-
+  
   {
     "jmbuhr/otter.nvim",
-    ft = { "quarto", "markdown", "python" },
-    opts = { buffers = { set_filetype = true }, handle_leading_whitespace = true },
+    enabled = false, -- Désactivé temporairement
   },
 
   {
@@ -185,7 +116,7 @@ return {
     opts = {
       backend = "kitty",
       integrations = {
-        markdown = { enabled = true, filetypes = { "markdown", "quarto", "python" } },
+        markdown = { enabled = true, filetypes = { "python" } },
       },
     },
   },

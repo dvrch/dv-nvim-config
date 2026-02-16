@@ -1,81 +1,76 @@
-# 🚀 Guide Jupyter DÉFINITIF : Neovim 🛰️
+# 🚀 Guide Jupyter ULTRA-SIMPLIFIÉ 🛰️
 
-Configuration professionnelle avec exécution séquentielle et gestion intelligente des kernels.
-
----
-
-## ⚡ PRIORITÉS D'EXÉCUTION
-
-### 1️⃣ **PRIORITÉ 1 : CELLULE** (Recommandé)
-**`<leader>jc`** : Exécute TOUTE la cellule (bloc entre deux `# %%`)
-- C'est la commande PRINCIPALE pour travailler avec Jupyter
-- Garantit l'exécution complète du code d'une cellule
-
-### 2️⃣ **PRIORITÉ 2 : SÉLECTION**
-**`<leader>jv`** (en mode VISUEL) : Exécute les lignes sélectionnées
-1. Sélectionne plusieurs lignes avec `V` (mode visuel ligne)
-2. Appuie sur `<leader>jv`
-3. Seules les lignes sélectionnées s'exécutent
-
-### 3️⃣ **PRIORITÉ 3 : LIGNE**
-**`<leader>jx`** : Exécute UNE SEULE ligne
-- Utile pour le débogage rapide
+**Nouvelle philosophie** : ZÉRO auto-init = ZÉRO kernel zombie = ZÉRO problème.
 
 ---
 
-## 🔥 COMMANDES GLOBALES (NOUVELLES)
+## ⚡ WORKFLOW EN 3 ÉTAPES
 
-| Touches | Action | Description |
+### 1️⃣ **Ouvrir le Notebook**
+```bash
+nvim mon_fichier.ipynb
+```
+
+### 2️⃣ **Initialiser le Kernel MANUELLEMENT**
+> **`<leader>mk`** (une seule fois au début)
+
+Tu verras : "Kernel python3 initialized"
+
+### 3️⃣ **Travailler**
+- **`<leader>jc`** : Exécuter une cellule
+- **`<leader>ja`** : Exécuter TOUTES les cellules
+
+---
+
+## 🎹 RACCOURCIS ESSENTIELS
+
+| Touches | Action | Quand l'utiliser |
 |:---|:---|:---|
-| **`<leader>ja`** | **Run All Clean** | 🧹 Supprime TOUS les outputs + Exécute TOUTES les cellules une par une (attend que chaque cellule finisse avant de lancer la suivante) ✅ |
-| **`<leader>jD`** | **Delete All Outputs** | 🗑️ Supprime TOUS les outputs de TOUTES les cellules (majuscule D) |
-| **`<leader>jd`** | Delete Current Output | Supprime l'output de la cellule actuelle (minuscule d) |
-| **`<leader>ji`** | Interrupt | ⏸️ Interrompt l'exécution en cours |
+| **`<leader>mk`** | 🐍 **Initialiser le Kernel** | **AU DÉBUT** (une fois) |
+| **`<leader>jc`** | ▶️ Exécuter la cellule | Usage principal |
+| **`<leader>ja`** | 🚀 Exécuter TOUT | Pour tester tout le notebook |
+| **`<leader>jx`** | Exécuter une ligne | Débogage rapide |
+| **`<leader>jv`** | Exécuter sélection | En mode visuel |
 
 ---
 
-## 🎯 WORKFLOW RECOMMANDÉ
+## 🗑️ NETTOYAGE
 
-### Pour Développer :
-1. **`<leader>jc`** : Exécuter la cellule actuelle
-2. Corriger le code si nécessaire
-3. **`<leader>jc`** : Re-exécuter
-
-### Pour Tester Tout :
-1. **`<leader>ja`** : Nettoie tout et exécute toutes les cellules séquentiellement ✅
-
-### Pour Nettoyer :
-- **`<leader>jD`** : Supprime tous les résultats d'un coup
+| Touches | Action |
+|:---|:---|
+| **`<leader>jd`** | Supprimer l'output de la cellule actuelle |
+| **`<leader>jD`** | Supprimer TOUS les outputs |
+| **`<leader>mK`** | 💀 **TUER TOUS LES KERNELS** (en cas de problème) |
 
 ---
 
-## 🐍 KERNEL (Plus de Problème)
+## 🆘 DÉPANNAGE
 
-Le kernel Python 3 s'initialise **automatiquement UNE SEULE FOIS** quand tu ouvres un `.ipynb`.
-- Plus de demande à chaque exécution ✅
-- Un seul kernel par fichier ✅
-- Pour réinitialiser manuellement : **`<leader>mk`**
+### Problème : Les kernels se multiplient
+**Solution** : **`<leader>mK`** (tue tout) puis **ferme/rouvre Neovim**
 
----
+### Problème : "Not in a cell"
+**Cause** : Ton curseur n'est pas dans un bloc `# %%`
+**Solution** : Assure-toi d'avoir des marqueurs `# %%` entre tes cellules
 
-## 📊 Affichage des Résultats
-
-- **Texte** : Directement sous la ligne de code en bleu
-- **Print()** : Fonctionne parfaitement
-- **Graphiques** : Fenêtre popup (si terminal compatible)
-- **Voir en grand** : `<leader>jo`
+### Problème : Rien ne s'exécute
+**Cause** : Kernel pas initialisé
+**Solution** : Fais **`<leader>mk`** en premier
 
 ---
 
-## 🆘 Dépannage
+## 💡 FORMAT DES CELLULES
 
-### La cellule ne s'exécute pas
-Vérifie que ton curseur est dans un bloc délimité par `# %%`
+Ton notebook doit ressembler à ça :
+```python
+# %%
+print("Cellule 1")
+# %%
+print("Cellule 2")
+```
 
-### Exécution bloquée
-Fais `<leader>ji` pour interrompre
+**Important** : Le `# %%` SEUL sur une ligne = début de cellule.
 
-### Kernel non initialisé
-Fais `<leader>mk` manuellement
+---
 
-*Configuré avec ❤️ par Antigravity. Sois attentif aux priorités !*
+*Configuration minimaliste et stable. Fini l'auto-init qui crée des problèmes !* 🛰️✨
