@@ -29,12 +29,13 @@ vim.keymap.set("n", "<leader>ov", function()
   end
 end, { desc = "Open in VSCode" })
 
--- Open current file in Zed (leader oz) - Utilise le chemin absolu
+-- Open current file in Zed (leader oz)
 vim.keymap.set("n", "<leader>oz", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    -- On utilise l'exécutable trouvé précédemment
-    vim.fn.jobstart({ "/home/kd/.local/bin/zed", file_path }, { detach = true })
+    -- Emploi de nohup pour détacher complètement du processus parent nvim
+    local cmd = "nohup /home/kd/.local/bin/zed " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
+    os.execute(cmd)
     vim.notify("⚡ Zed: " .. vim.fn.pathshorten(file_path), vim.log.levels.INFO)
   else
     vim.notify("Aucun fichier à ouvrir.", vim.log.levels.WARN)
