@@ -18,7 +18,7 @@ function M.inject(cmd)
   else
     -- Fallback : Créer un terminal en bas si aucun n'existe
     vim.cmd("botright split")
-    vim.cmd("term " .. cmd)
+    vim.fn.termopen(cmd)
     vim.cmd("startinsert")
   end
 end
@@ -26,7 +26,7 @@ end
 -- Fonction pour exécuter dans un nouvel onglet
 function M.new_tab(cmd)
   vim.cmd("tabnew")
-  vim.cmd("term " .. cmd)
+  vim.fn.termopen(cmd)
   vim.cmd("startinsert")
 end
 
