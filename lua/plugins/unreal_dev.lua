@@ -15,18 +15,30 @@ return {
     event = { "User LoadHeavy" },
     config = function()
 
+      local engine_dir = vim.env.UNREAL_ENGINE_PATH or vim.fn.expand("~/aps/UE_5.7.3")
+
       require("unreal-support").setup({
-        -- Répertoire racine de ton UE 5.6
-        unreal_engine_path = "/home/kd/Bureau/Linux_Unreal_Engine_5.6.0",
-        project_path = "/home/kd/Documents/Unreal Projects/city_building_osm_project_files/OSM_Unreal_project/Unreal_project_5.6/OSM_Project_Files.uproject",
+        engine_path = engine_dir,
+        -- project_path non spécifié = Auto-détection du `.uproject` dans ton workspace actif !
       })
 
-      -- Commande pour lancer le projet Unreal directement depuis Neovim
+      -- Commande DYNAMIQUE pour lancer le projet Unreal directement depuis Neovim
       vim.api.nvim_create_user_command("UnrealRun", function()
-        local editor = "/home/kd/Bureau/Linux_Unreal_Engine_5.6.0/Engine/Binaries/Linux/UnrealEditor"
-        local project = "/home/kd/Documents/Unreal Projects/city_building_osm_project_files/OSM_Unreal_project/Unreal_project_5.6/OSM_Project_Files.uproject"
+        local us = require("unreal-support")
+        local editor = us.engine_path .. "/Engine/Binaries/Linux/UnrealEditor"
+        local project = us.project_path .. "/" .. us.project_name .. ".uproject"
+        
+        if vim.fn.filereadable(editor) == 0 then
+            print("❌ Exécutable Unreal introuvable : " .. editor)
+            return
+        end
+        if vim.fn.filereadable(project) == 0 then
+            print("❌ Fichier Projet introuvable : " .. project)
+            return
+        end
+        
         vim.fn.jobstart({ editor, project }, { detach = true })
-        print("🚀 Lancement d'Unreal Engine 5.6...")
+        print("🚀 Lancement d'Unreal Engine (" .. us.project_name .. ")...")
       end, {})
     end,
     keys = {
