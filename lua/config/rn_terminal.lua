@@ -10,12 +10,17 @@ vim.api.nvim_create_autocmd("TermOpen", {
   end,
 })
 
--- Fonction interne pour créer un terminal shell et y injecter la commande
 local function create_shell_and_inject(cmd)
   local shell = vim.env.SHELL or "bash"
   local buf = vim.api.nvim_get_current_buf()
   local chan = vim.fn.termopen(shell)
   M.last_term_chan = chan
+  
+  -- Nommer l'onglet/buffer de façon intelligente
+  local short_cmd = cmd:sub(1, 15):gsub("[%s/:]", "_")
+  local clean_name = "kr_[" .. short_cmd .. "]"
+  pcall(vim.api.nvim_buf_set_name, buf, clean_name)
+
   -- Petit délai pour s'assurer que le shell est prêt avant d'écrire
   vim.defer_fn(function()
     if M.last_term_chan then
@@ -23,6 +28,27 @@ local function create_shell_and_inject(cmd)
     end
   end, 100)
 end
+
+-- Commande pour Extraire le buffer actuel et l'isoler dans une VRAIE nouvelle instance (v -n)
+vim.api.nvim_create_user_command("ExtractInstance", function()
+  local buf = vim.api.nvim_get_current_buf()
+  local filepath = vim.api.nvim_buf_get_name(buf)
+  
+  if filepath:match("^term://") or filepath:match("^kr_%[") then
+    vim.notify("❌ Impossible d'extraire un processus terminal. Extraire plutôt un vrai fichier.", vim.log.levels.WARN)
+    return
+  end
+  
+  if filepath == "" then
+    vim.notify("❌ Ce buffer n'a pas de fichier associé (non sauvegardé).", vim.log.levels.ERROR)
+    return
+  end
+  
+  -- Lance V en forçant une nouvelle instance (-n) avec l'outil terminal actuel
+  vim.fn.jobstart({ "kitty", "-1", "v", "-n", filepath }, { detach = true })
+  vim.cmd("bdelete")
+  vim.notify("🚀 Fichier détaché dans sa PROPRE instance indépendante !", vim.log.levels.INFO)
+end, { desc = "Extrait (détache) le fichier courant dans un nouveau Neovim totalement isolé" })
 
 -- Fonction pour injecter une commande dans le dernier terminal connu
 function M.inject(cmd)

@@ -8,15 +8,20 @@ vim.keymap.set("n", "<leader>db", ":Alpha<CR>", { desc = "Open Dashboard" })
 -- Open a terminal
 vim.keymap.set("n", "<leader>t", ":terminal<CR>", { desc = "Open Terminal" })
 
--- Condition de démarrage pour Gemini (Désactivé par défaut)
-if vim.g.gemini_autolaunch == nil then
-  vim.g.gemini_autolaunch = false
+-- Condition de démarrage pour Gemini (Désactivé par défaut, mais mémorisé)
+local gemini_cfg = vim.fn.stdpath("data") .. "/gemini_autolaunch.txt"
+if vim.fn.filereadable(gemini_cfg) == 1 then
+  vim.g.gemini_autolaunch = vim.fn.readfile(gemini_cfg)[1] == "true"
+else
+  -- Valeur par défaut si aucun fichier : true (activé par défaut)
+  vim.g.gemini_autolaunch = true
 end
 
--- Toggle Gemini auto-launch
+-- Toggle Gemini auto-launch avec mémorisation
 vim.keymap.set("n", "<leader>gT", function()
   vim.g.gemini_autolaunch = not vim.g.gemini_autolaunch
-  local status = vim.g.gemini_autolaunch and "ACTIVÉ" or "DÉSACTIVÉ"
+  vim.fn.writefile({ tostring(vim.g.gemini_autolaunch) }, gemini_cfg)
+  local status = vim.g.gemini_autolaunch and "ACTIVÉ (au prochain lancement)" or "DÉSACTIVÉ"
   vim.notify("🤖 Gemini auto-launch: " .. status, vim.log.levels.INFO)
 end, { desc = "Toggle Gemini Auto-Launch" })
 
