@@ -15,9 +15,11 @@ vim.env.PATH = vim.env.PATH .. ":/home/dv/.nvm/versions/node/v24.5.0/bin"
 vim.opt.clipboard:append("unnamedplus")
 
 -- Chargement des configurations
+require("config.heavy_loader").setup()
 require("config.spell")
 require("custom_syntax")
 require("config.autocmds")
+
 require("pieces_help")
 
 -- Options d'affichage

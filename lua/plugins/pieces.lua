@@ -2,10 +2,12 @@ return {
   -- Pièces OS for Neovim (Plugin officiel)
   {
     "pieces-app/plugin_neovim",
+    event = { "User LoadHeavy" },
     dependencies = {
       "MunifTanjim/nui.nvim",
       "hrsh7th/nvim-cmp",
     },
+
     opts = {
       -- Configuration de base si nécessaire
     },

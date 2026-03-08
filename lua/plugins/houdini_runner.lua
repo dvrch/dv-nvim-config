@@ -9,8 +9,10 @@ return {
   },
   {
     "stevearc/overseer.nvim",
+    event = { "User LoadHeavy" },
     opts = {},
     config = function()
+
       local output_buf = nil
       local output_win = nil
 

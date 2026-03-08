@@ -12,7 +12,9 @@ return {
   -- Intégration Unreal
   {
     "goopey7/unreal-support.nvim",
+    event = { "User LoadHeavy" },
     config = function()
+
       require("unreal-support").setup({
         -- Répertoire racine de ton UE 5.6
         unreal_engine_path = "/home/kd/Bureau/Linux_Unreal_Engine_5.6.0",

@@ -2,6 +2,7 @@ return {
   -- Molten: Configuration Professionnelle (Type VSCode)
   {
     "benlubas/molten-nvim",
+    event = { "User LoadHeavy" },
     version = "^1.0.0",
     build = ":UpdateRemotePlugins",
     init = function()
@@ -102,7 +103,8 @@ return {
   -- Jupytext : Config stable Markdown
   {
     "GCBallesteros/jupytext.nvim",
-    lazy = false,
+    event = { "User LoadHeavy" },
+    lazy = true,
     opts = {
       custom_outputs = false,
       style = "markdown",
@@ -124,6 +126,7 @@ return {
 
   {
     "3rd/image.nvim",
+    event = { "User LoadHeavy" },
     opts = {
       backend = "kitty",
       integrations = {
