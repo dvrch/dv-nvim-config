@@ -16,6 +16,7 @@ vim.opt.clipboard:append("unnamedplus")
 
 -- Chargement des configurations
 require("config.heavy_loader").setup()
+require("config.rn_terminal")
 require("config.spell")
 require("custom_syntax")
 require("config.autocmds")
