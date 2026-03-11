@@ -143,3 +143,18 @@ vim.keymap.set("n", "<leader>bi", ":ExtractInstance<CR>", { desc = "Isolate Buff
 vim.keymap.set("n", "<leader>sb", function()
   require("config.telescope_baloo").search()
 end, { desc = "Search Baloo (System Search)" })
+
+-- GESTION DES TAGS BALOO (KDE)
+-- Taguer le fichier ou dossier actuel
+vim.keymap.set("n", "<leader>st", function()
+  require("config.baloo_tags").tag_current_item()
+end, { desc = "Tag Current Item (Baloo/KDE)" })
+
+-- Forcer l'indexation immédiate du fichier actuel (au cas où)
+vim.keymap.set("n", "<leader>ui", function()
+  local path = vim.api.nvim_buf_get_name(0)
+  if path ~= "" then
+    vim.fn.system("balooctl6 index " .. vim.fn.shellescape(path))
+    vim.notify("🔄 Indexation Baloo forcée pour : " .. vim.fn.fnamemodify(path, ":t"))
+  end
+end, { desc = "Update Baloo Index (Current File)" })
