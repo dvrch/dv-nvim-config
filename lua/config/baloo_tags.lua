@@ -23,6 +23,15 @@ local function set_tags(path, tags_str)
   vim.fn.system(string.format("balooctl6 index %s", vim.fn.shellescape(path)))
   
   vim.notify(string.format("🏷️ Tags mis à jour pour : %s\n✨ Tags : %s", vim.fn.fnamemodify(path, ":t"), tags_str), vim.log.levels.INFO)
+  
+  -- 3. Si un Telescope est ouvert (recherche Baloo), on le rafraîchit
+  local ok, telescope = pcall(require, "telescope.actions.state")
+  if ok then
+    local picker = telescope.get_current_picker(vim.api.nvim_get_current_buf())
+    if picker then
+        picker:refresh()
+    end
+  end
 end
 
 -- Interface utilisateur pour ajouter un tag au fichier courant ou au dossier
