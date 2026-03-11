@@ -135,3 +135,11 @@ end, { desc = "Open with System Default" })
 -- Find recent projects (workspaces) using telescope-frecency
 -- Shortcut <leader>pw
 vim.keymap.set("n", "<leader>pw", "<cmd>Telescope frecency workspace=CWD<CR>", { desc = "[P]roject [W]orkspaces (frecency)" })
+
+-- Extraire le buffer actuel dans une nouvelle instance isolée
+vim.keymap.set("n", "<leader>bi", ":ExtractInstance<CR>", { desc = "Isolate Buffer (New Instance)" })
+
+-- Recherche Baloo (KRunner) dans tout le système
+vim.keymap.set("n", "<leader>sb", function()
+  require("config.telescope_baloo").search()
+end, { desc = "Search Baloo (System Search)" })
