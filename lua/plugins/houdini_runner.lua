@@ -58,7 +58,7 @@ return {
 
       local function run_in_houdini(filepath, suffix)
         local buf, win = get_output_window(suffix)
-        local cmd = { "python3", "/home/kd/Documents/proudini/P26_1/scripts/python/send_to_houdini.py", filepath }
+        local cmd = { "python3", "/home/kd/scripts/proudini_core/python/send_to_houdini.py", filepath }
         
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "🚀 Executing: " .. filepath .. " [" .. os.date("%H:%M:%S") .. "]" })
 
@@ -103,7 +103,10 @@ return {
       local function open_houdini_shell()
         local hython = "/home/kd/scripts/houdini_launcher.sh hython"
         vim.cmd("belowright 15split")
-        vim.fn.termopen(hython)
+        vim.schedule(function()
+            vim.fn.termopen(hython)
+            vim.cmd("startinsert") 
+        end)
       end
 
       -- Clear commands (All specialized buffers)
@@ -126,7 +129,7 @@ return {
 
       -- Simulation Reset (Master)
       vim.keymap.set("n", "<leader>rs", function()
-        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/hq.py"
+        local script = "/home/kd/scripts/proudini_core/python/hq.py"
         local cmd = "python3 " .. script .. " 'import hou; hou.session.PROUDINI_KART_STATE = {}; print(\"Simulation Reset ✅\")'"
         local handle = io.popen(cmd)
         local result = handle:read("*a")
@@ -137,8 +140,8 @@ return {
       -- Run Node Info (Now correctly using Absolute Paths & Dedicated Buffer)
       vim.keymap.set("n", "<leader>ri", function()
         vim.ui.input({ prompt = "Path (Vide = Sélection / ALL = Liste tout): ", default = "" }, function(input)
-          local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_db.py"
-          local hq_script = "/home/kd/Documents/proudini/P26_1/scripts/python/hq.py"
+          local script = "/home/kd/scripts/proudini_core/python/node_db.py"
+          local hq_script = "/home/kd/scripts/proudini_core/python/hq.py"
           local base_cmd = "python3 " .. hq_script .. " "
           local cmd = ""
           
@@ -169,13 +172,13 @@ return {
 
       -- Run Full Parameters Report
       vim.keymap.set("n", "<leader>rp", function()
-        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/node_params_full.py"
+        local script = "/home/kd/scripts/proudini_core/python/node_params_full.py"
         run_in_houdini(script, "Params")
       end, { desc = "Houdini: Full Parameters Report" })
 
       -- Run Error Report
       vim.keymap.set("n", "<leader>re", function()
-        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/houdini_errors.py"
+        local script = "/home/kd/scripts/proudini_core/python/houdini_errors.py"
         run_in_houdini(script, "Errors")
       end, { desc = "Houdini: Report Scene Errors" })
 
@@ -187,7 +190,7 @@ return {
 
       -- Start Live Logger in Houdini
       vim.keymap.set("n", "<leader>rx", function()
-        local script = "/home/kd/Documents/proudini/P26_1/scripts/python/live_logger.py"
+        local script = "/home/kd/scripts/proudini_core/python/live_logger.py"
         run_in_houdini(script)
         vim.notify("Live Logger démarré dans Houdini 🛰️", vim.log.levels.INFO)
       end, { desc = "Houdini: Start Live Logger" })
