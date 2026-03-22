@@ -60,6 +60,10 @@ return {
         local buf, win = get_output_window(suffix)
         local cmd = { "python3", "/home/kd/scripts/proudini_core/python/send_to_houdini.py", filepath }
         
+        if vim.g.proudini_port ~= nil then
+            table.insert(cmd, tostring(vim.g.proudini_port))
+        end
+
         vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "🚀 Executing: " .. filepath .. " [" .. os.date("%H:%M:%S") .. "]" })
 
         vim.fn.jobstart(cmd, {
@@ -80,6 +84,37 @@ return {
           end,
         })
       end
+
+      -- Select Houdini Target Instance dynamically
+      vim.keymap.set("n", "<leader>rc", function()
+        local script = "/home/kd/scripts/proudini_core/python/get_houdini_instances.py"
+        local handle = io.popen("python3 " .. script)
+        local result = handle:read("*a")
+        handle:close()
+
+        if result == "" or result == "[]\n" then
+            vim.notify("Aucune instance Houdini (Python Socket) trouvée ❌", vim.log.levels.ERROR)
+            return
+        end
+
+        local ok, instances = pcall(vim.fn.json_decode, result)
+        if not ok or not instances then
+            vim.notify("Crash de l'API de sélection ❌", vim.log.levels.ERROR)
+            return
+        end
+
+        local options = {}
+        for _, inst in ipairs(instances) do
+            table.insert(options, string.format("Port %s : %s", inst.port, inst.project))
+        end
+
+        vim.ui.select(options, { prompt = "🎯 Choisir la cible Houdini :" }, function(choice, idx)
+            if choice then
+                vim.g.proudini_port = instances[idx].port
+                vim.notify("Cible verrouillée sur " .. choice .. " ✅", vim.log.levels.INFO)
+            end
+        end)
+      end, { desc = "Houdini: Select Target Instance" })
 
       local function run_live_logs()
         local buf, win = get_output_window("LiveLog")
