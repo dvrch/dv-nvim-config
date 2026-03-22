@@ -101,7 +101,7 @@ return {
       end
 
       local function open_houdini_shell()
-        local hython = "/opt/hfs20.0/bin/hython"
+        local hython = "/home/kd/scripts/houdini_launcher.sh hython"
         vim.cmd("belowright 15split")
         vim.fn.termopen(hython)
       end
