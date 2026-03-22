@@ -145,7 +145,7 @@ return {
       end
 
       -- Clear commands (All specialized buffers)
-      vim.keymap.set("n", "<leader>rc", function()
+      vim.keymap.set("n", "<leader>rk", function()
         for _, suffix in ipairs({ "Output", "NodeInfo", "Errors" }) do
           local buf_name = "Houdini" .. suffix
           for _, b in ipairs(vim.api.nvim_list_bufs()) do
@@ -155,7 +155,7 @@ return {
           end
         end
         vim.notify("Logs Houdini effacés 🧹", vim.log.levels.INFO)
-      end, { desc = "Clear All Houdini Logs" })
+      end, { desc = "Houdini: Clear All Logs" })
 
       -- Run Current File
       vim.keymap.set("n", "<leader>rr", function()
@@ -172,38 +172,49 @@ return {
         vim.notify(result:gsub("\n", ""), vim.log.levels.INFO)
       end, { desc = "Houdini: Reset Simulation Data" })
 
-      -- Run Node Info (Now correctly using Absolute Paths & Dedicated Buffer)
+      -- Run Node Info (Now using the dynamic port and selection-first logic)
       vim.keymap.set("n", "<leader>ri", function()
-        vim.ui.input({ prompt = "Path (Vide = Sélection / ALL = Liste tout): ", default = "" }, function(input)
-          local script = "/home/kd/scripts/proudini_core/python/node_db.py"
           local hq_script = "/home/kd/scripts/proudini_core/python/hq.py"
-          local base_cmd = "python3 " .. hq_script .. " "
-          local cmd = ""
+          local node_db = "/home/kd/scripts/proudini_core/python/node_db.py"
           
-          if input == "ALL" then
-            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"ALL\",\"\"]; exec(open(\"" .. script .. "\").read())'"
-          elseif input == "" then
-            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. script .. "\").read())'"
-          else
-            cmd = base_cmd .. "'import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. script .. "\").read())'"
+          -- We call 'hq' with our python logic directly
+          local cmd = "python3 " .. hq_script .. " 'import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. node_db .. "\").read())' 2>&1"
+          
+          -- Add custom port if locked
+          if vim.g.proudini_port ~= nil then
+             cmd = "python3 " .. hq_script .. " -p " .. vim.g.proudini_port .. " 'import sys; sys.argv=[\"\",\"info\",\"\"]; exec(open(\"" .. node_db .. "\").read())' 2>&1"
           end
-          
-          local handle = io.popen(cmd .. " 2>&1")
+
+          local handle = io.popen(cmd)
           local result = handle:read("*a")
           handle:close()
           
-          if not result or result == "" then
-            result = "⚠️ Aucune réponse du serveur Houdini. Est-il lancé ?"
+          if not result or result == "" or result:match("Aucun node sélectionné") then
+            -- Si rien n'est sélectionné, ALORS on demande le chemin
+            vim.ui.input({ prompt = "Node Path (ex: /obj/geo1 ou 'ALL'): ", default = "" }, function(input)
+                if not input or input == "" then return end
+                local query_cmd = ""
+                if input == "ALL" then
+                    query_cmd = "python3 " .. hq_script .. " 'import sys; sys.argv=[\"\",\"ALL\",\"\"]; exec(open(\"" .. node_db .. "\").read())' 2>&1"
+                else
+                    query_cmd = "python3 " .. hq_script .. " 'import sys; sys.argv=[\"\",\"info\",\"" .. input .. "\"]; exec(open(\"" .. node_db .. "\").read())' 2>&1"
+                end
+                
+                local h = io.popen(query_cmd)
+                local r = h:read("*a")
+                h:close()
+                
+                local b, w = get_output_window("NodeInfo")
+                vim.api.nvim_buf_set_lines(b, -1, -1, false, vim.split(r or "Empty", "\n"))
+                vim.api.nvim_win_set_cursor(w, { vim.api.nvim_buf_line_count(b), 0 })
+            end)
+          else
+            local buf, win = get_output_window("NodeInfo")
+            vim.api.nvim_buf_set_lines(buf, -1, -1, false, { os.date("[%H:%M:%S] --- AUTO SELECTED INFO ---") })
+            vim.api.nvim_buf_set_lines(buf, -1, -1, false, vim.split(result, "\n"))
+            vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
           end
-          
-          local buf, win = get_output_window("NodeInfo")
-          -- On AJOUTE au lieu de remplacer
-          vim.api.nvim_buf_set_lines(buf, -1, -1, false, { os.date("[%H:%M:%S] --- INFO ---") })
-          vim.api.nvim_buf_set_lines(buf, -1, -1, false, vim.split(result, "\n"))
-          vim.api.nvim_buf_set_lines(buf, -1, -1, false, { "--------------------", "" })
-          vim.api.nvim_win_set_cursor(win, { vim.api.nvim_buf_line_count(buf), 0 })
-        end)
-      end, { desc = "Houdini: Node Database & Info (i)" })
+      end, { desc = "Houdini: Instant Node Info (Selected or Path)" })
 
       -- Run Full Parameters Report
       vim.keymap.set("n", "<leader>rp", function()
@@ -218,7 +229,7 @@ return {
       end, { desc = "Houdini: Report Scene Errors" })
 
       -- Live Logs
-      vim.keymap.set("n", "<leader>rl", run_live_logs, { desc = "Houdini: Watch Live Logs (tail -f)" })
+      vim.keymap.set("n", "<leader>rw", run_live_logs, { desc = "Houdini: Watch Live Logs (tail -f)" })
 
       -- Interactive Shell
       vim.keymap.set("n", "<leader>rh", open_houdini_shell, { desc = "Houdini: Open Interactive Hython Shell" })
