@@ -51,15 +51,51 @@ vim.keymap.set("n", "<leader>oz", function()
   end
 end, { desc = "Open in Zed" })
 
--- Ouvrir dans Obsidian Standard (leader oo)
+-- Ouvrir dans Obsidian Intelligent (leader oo)
 vim.keymap.set("n", "<leader>oo", function()
   local file_path = vim.fn.expand("%:p")
   if file_path and file_path ~= "" then
-    local cmd = "nohup obsidian " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
+    local cmd = "nohup /home/kd/scripts/vobs " .. vim.fn.shellescape(file_path) .. " > /dev/null 2>&1 &"
     os.execute(cmd)
-    vim.notify("💎 Obsidian: " .. vim.fn.pathshorten(file_path))
+    vim.notify("💎 Obsidian (Mode Intelligent): " .. vim.fn.pathshorten(file_path))
   end
-end, { desc = "Open in Obsidian" })
+end, { desc = "Open in Obsidian (vobs)" })
+
+-- ⚡ MODE PARALLÈLE (Sync Nvim -> Obsidian)
+vim.g.obsidian_sync_enabled = false
+vim.api.nvim_create_user_command("ToggleObsidianSync", function()
+  vim.g.obsidian_sync_enabled = not vim.g.obsidian_sync_enabled
+  local status = vim.g.obsidian_sync_enabled and "🚀 ACTIVÉ" or "⛔ DÉSACTIVÉ"
+  vim.notify("💎 Parallel Sync Obsidian: " .. status, vim.log.levels.INFO)
+end, {})
+vim.keymap.set("n", "<leader>os", ":ToggleObsidianSync<CR>", { desc = "Toggle Obsidian Sync (Parallel Mode)" })
+
+-- Autocmd pour la synchro automatique quand le mode est activé
+vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
+  group = vim.api.nvim_create_augroup("ObsidianParallelSync", { clear = true }),
+  callback = function()
+    if vim.g.obsidian_sync_enabled then
+      local path = vim.api.nvim_buf_get_name(0)
+      if path ~= "" and vim.bo.buftype == "" then
+        vim.fn.jobstart({ "/home/kd/scripts/vobs", path }, { detach = true })
+      end
+    end
+  end,
+})
+
+-- 📂 OUVRIR DOSSIER DANS OBSIDIAN (leader oO)
+vim.keymap.set("n", "<leader>oO", function()
+  local dir_path = vim.fn.expand("%:p:h")
+  if dir_path and dir_path ~= "" then
+    vim.fn.jobstart({ "/home/kd/scripts/vobs", dir_path }, { detach = true })
+    vim.notify("📂 Dossier dans Obsidian: " .. vim.fn.pathshorten(dir_path))
+  end
+end, { desc = "Open Current Directory in Obsidian" })
+
+-- 💎 GESTION DES VAULTS (Ouverture rapide de tes coffres dans Nvim)
+vim.keymap.set("n", "<leader>v1", ":tabnew | cd /home/kd/Bureau/z_obs | Telescope find_files<CR>", { desc = "Open Vault: z_obs" })
+vim.keymap.set("n", "<leader>v2", ":tabnew | cd /home/kd/Bureau/OBS-M | Telescope find_files<CR>", { desc = "Open Vault: OBS-M" })
+vim.keymap.set("n", "<leader>v3", ":tabnew | cd /home/kd/Bureau/4PLG | Telescope find_files<CR>", { desc = "Open Vault: 4PLG" })
 
 -- Ouvrir dans Obsidian LITE (leader oL) - SANS plugins tiers
 vim.keymap.set("n", "<leader>oL", function()
@@ -86,7 +122,6 @@ vim.keymap.set("n", "<leader>oL", function()
   vim.fn.mkdir(lite_vault, "p")
 
   -- 3. Symlinker tout SAUF le dossier .obsidian
-  -- Cela force Obsidian à ouvrir le dossier comme un nouveau coffre sans plugins
   local items = vim.fn.glob(vault_root .. "/*", false, true)
   for _, item in ipairs(items) do
     local name = vim.fn.fnamemodify(item, ":t")
@@ -107,7 +142,6 @@ end, { desc = "Open in Obsidian LITE (No Plugins)" })
 vim.keymap.set("n", "<leader>oe", function()
   local file = vim.fn.expand("%:p")
   if file and file ~= "" then
-    -- Use os.execute with nohup to ensure it detaches correctly
     local cmd = string.format("nohup /usr/bin/dolphin --select %s >/dev/null 2>&1 &", vim.fn.shellescape(file))
     os.execute(cmd)
     vim.notify("Dolphin (Focus) : " .. vim.fn.pathshorten(file), vim.log.levels.INFO)
@@ -133,7 +167,6 @@ vim.keymap.set("n", "<leader>ox", function()
 end, { desc = "Open with System Default" })
 
 -- Find recent projects (workspaces) using telescope-frecency
--- Shortcut <leader>pw
 vim.keymap.set("n", "<leader>pw", "<cmd>Telescope frecency workspace=CWD<CR>", { desc = "[P]roject [W]orkspaces (frecency)" })
 
 -- Extraire le buffer actuel dans une nouvelle instance isolée
@@ -145,7 +178,6 @@ vim.keymap.set("n", "<leader>sb", function()
 end, { desc = "Search Baloo (System Search)" })
 
 -- GESTION DES TAGS BALOO (KDE)
--- Taguer le fichier ou dossier actuel
 vim.keymap.set("n", "<leader>st", function()
   require("config.baloo_tags").tag_current_item()
 end, { desc = "Tag Current Item (Baloo/KDE)" })
