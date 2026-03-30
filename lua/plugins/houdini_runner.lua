@@ -138,6 +138,8 @@ return {
       local function open_houdini_shell()
         local hython = "/home/kd/scripts/houdini_launcher.sh hython"
         vim.cmd("belowright 15split")
+        local buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_win_set_buf(0, buf)
         vim.schedule(function()
             vim.fn.termopen(hython)
             vim.cmd("startinsert") 
