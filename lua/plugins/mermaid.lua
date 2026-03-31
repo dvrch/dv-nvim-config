@@ -1,13 +1,2 @@
-return {
-  {
-    "chomosuke/mermaid-preview.nvim",
-    cmd = { "MermaidPreview", "MermaidPreviewToggle" },
-    opts = {
-      -- Utilise le renderer mmdc que tu as déjà dans Mason
-      output = "kitty", -- Rend directement dans kitty !
-    },
-    keys = {
-      { "<leader>mp", "<cmd>MermaidPreview<cr>", desc = "Mermaid Preview" },
-    },
-  },
-}
+-- Mermaid est maintenant géré automatiquement par image.nvim dans image-viewer.lua
+return {}

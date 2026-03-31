@@ -25,12 +25,10 @@ return {
           -- Support pour les liens Obsidian ![[Pasted image ...]]
           resolve_image_path = function(document_path, image_path, _)
             local expanded_image_path = vim.fn.expand(image_path)
-            -- 1. Si c'est déjà un chemin absolu ou relatif direct, on retourne
             if vim.loop.fs_stat(expanded_image_path) then
                 return expanded_image_path
             end
             
-            -- 2. Recherche dans le dossier actuel et sous-dossiers (Obsidian style)
             local current_dir = vim.fn.fnamemodify(document_path, ":h")
             local search_paths = {
               current_dir .. "/" .. image_path,
@@ -43,9 +41,13 @@ return {
                 return path
               end
             end
-            
             return image_path
           end,
+        },
+        mermaid = {
+          enabled = true,
+          clear_in_insert_mode = false,
+          filetypes = { "markdown", "quarto" },
         },
       },
       max_width = 100,
