@@ -79,15 +79,19 @@ end, {})
 
 vim.keymap.set("n", "<leader>os", ":ToggleObsidianSync<CR>", { desc = "Toggle Obsidian Sync (Global)" })
 
--- Autocmd pour la synchro automatique (Vérification du fichier physique)
+-- Autocmd pour la synchro automatique (Vérification du fichier physique + Filtre de dossier)
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
   group = vim.api.nvim_create_augroup("ObsidianParallelSync", { clear = true }),
   callback = function()
     if vim.fn.filereadable(sync_file) == 1 then
       local path = vim.api.nvim_buf_get_name(0)
       if path ~= "" and vim.bo.buftype == "" then
-        -- Éviter de boucler si on est déjà dans le dossier des previews
-        if not path:match("external_previews") then
+        -- 💡 FILTRE : On ne synchronise que les dossiers de travail
+        local is_work_dir = path:match("/home/kd/Bureau") 
+                         or path:match("/home/kd/Documents") 
+                         or path:match("/home/kd/scripts")
+
+        if is_work_dir and not path:match("external_previews") then
           vim.fn.jobstart({ "/home/kd/scripts/vobs", path }, { detach = true })
         end
       end
