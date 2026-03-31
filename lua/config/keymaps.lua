@@ -61,23 +61,35 @@ vim.keymap.set("n", "<leader>oo", function()
   end
 end, { desc = "Open in Obsidian (vobs)" })
 
--- ⚡ MODE PARALLÈLE (Sync Nvim -> Obsidian)
-vim.g.obsidian_sync_enabled = false
-vim.api.nvim_create_user_command("ToggleObsidianSync", function()
-  vim.g.obsidian_sync_enabled = not vim.g.obsidian_sync_enabled
-  local status = vim.g.obsidian_sync_enabled and "🚀 ACTIVÉ" or "⛔ DÉSACTIVÉ"
-  vim.notify("💎 Parallel Sync Obsidian: " .. status, vim.log.levels.INFO)
-end, {})
-vim.keymap.set("n", "<leader>os", ":ToggleObsidianSync<CR>", { desc = "Toggle Obsidian Sync (Parallel Mode)" })
+-- ⚡ MODE PARALLÈLE (Sync Nvim <-> Obsidian) Unifié
+local sync_file = vim.fn.expand("~/.sync_to_nvim")
 
--- Autocmd pour la synchro automatique quand le mode est activé
+vim.api.nvim_create_user_command("ToggleObsidianSync", function()
+  if vim.fn.filereadable(sync_file) == 1 then
+    vim.fn.delete(sync_file)
+    vim.notify("⛔ Sync Obsidian: DÉSACTIVÉ", vim.log.levels.INFO)
+  else
+    vim.fn.writefile({}, sync_file)
+    -- On force une première sync immédiate
+    local path = vim.api.nvim_buf_get_name(0)
+    if path ~= "" then vim.fn.jobstart({ "/home/kd/scripts/vobs", path }, { detach = true }) end
+    vim.notify("🚀 Sync Obsidian: ACTIVÉ", vim.log.levels.INFO)
+  end
+end, {})
+
+vim.keymap.set("n", "<leader>os", ":ToggleObsidianSync<CR>", { desc = "Toggle Obsidian Sync (Global)" })
+
+-- Autocmd pour la synchro automatique (Vérification du fichier physique)
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter" }, {
   group = vim.api.nvim_create_augroup("ObsidianParallelSync", { clear = true }),
   callback = function()
-    if vim.g.obsidian_sync_enabled then
+    if vim.fn.filereadable(sync_file) == 1 then
       local path = vim.api.nvim_buf_get_name(0)
       if path ~= "" and vim.bo.buftype == "" then
-        vim.fn.jobstart({ "/home/kd/scripts/vobs", path }, { detach = true })
+        -- Éviter de boucler si on est déjà dans le dossier des previews
+        if not path:match("external_previews") then
+          vim.fn.jobstart({ "/home/kd/scripts/vobs", path }, { detach = true })
+        end
       end
     end
   end,
