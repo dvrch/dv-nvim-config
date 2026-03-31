@@ -1,18 +1,17 @@
 return {
   {
-    -- Binding Lua pour Imagemagick (Indispensable pour image.nvim)
-    "vhyrro/luarocks.nvim",
-    priority = 1001,
-    opts = {
-      rocks = { "magick" },
-    },
-  },
-  {
     "3rd/image.nvim",
     dependencies = {
       "nvim-treesitter/nvim-treesitter",
-      "vhyrro/luarocks.nvim",
     },
+    -- Configuration prioritaire pour trouver Magick
+    init = function()
+      -- On indique à Neovim où trouver la bibliothèque 'magick' installée via Luarocks
+      local home = os.getenv("HOME")
+      package.path = package.path .. ";" .. home .. "/.luarocks/share/lua/5.1/?/init.lua"
+      package.path = package.path .. ";" .. home .. "/.luarocks/share/lua/5.1/?.lua"
+      package.cpath = package.cpath .. ";" .. home .. "/.luarocks/lib/lua/5.1/?.so"
+    end,
     opts = {
       backend = "kitty",
       integrations = {
@@ -22,7 +21,7 @@ return {
           download_remote_images = true,
           only_render_image_at_cursor = false,
           filetypes = { "markdown", "vimwiki" },
-          -- RÉSOLVEUR DE CHEMINS UNIVERSEL (Obsidian, Espaces, Courts, Longs)
+          -- RÉSOLVEUR DE CHEMINS UNIVERSEL
           resolve_image_path = function(document_path, image_path, _)
             local clean_path = image_path:gsub("%%20", " ")
             if clean_path:sub(1, 1) == "/" and vim.loop.fs_stat(clean_path) then
@@ -30,8 +29,6 @@ return {
             end
             
             local current_dir = vim.fn.fnamemodify(document_path, ":h")
-            
-            -- Trouver le coffre Obsidian
             local vault_root = current_dir
             while vault_root ~= "/" do
               if vim.loop.fs_stat(vault_root .. "/.obsidian") then break end
@@ -39,7 +36,6 @@ return {
             end
             if vault_root == "/" then vault_root = current_dir end
 
-            -- Recherche par priorité
             local candidates = {
               current_dir .. "/" .. clean_path,
               vault_root .. "/" .. clean_path,
@@ -50,7 +46,6 @@ return {
               if vim.loop.fs_stat(path) then return path end
             end
             
-            -- "Dernière chance" : recherche globale ultrarapide
             local find_cmd = string.format("find %s -name %s -type f -print -quit", 
               vim.fn.shellescape(vault_root), 
               vim.fn.shellescape(clean_path))
@@ -60,9 +55,6 @@ return {
         },
         mermaid = {
           enabled = true,
-          clear_in_insert_mode = false,
-          filetypes = { "markdown", "quarto" },
-          -- Forçage du moteur de rendu avec les nouveaux composants installés
           puppeteer_args = { "--no-sandbox" },
           executable_path = "mmdc",
         },
