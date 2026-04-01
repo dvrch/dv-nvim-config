@@ -287,7 +287,10 @@ return {
       -- Restart Houdini Server (In-process)
       vim.keymap.set("n", "<leader>rj", function()
         local script = "/home/kd/scripts/proudini_core/python/houdini_server.py"
-        run_in_houdini("exec(open('" .. script .. "').read(), globals())")
+        local code = "exec(open('" .. script .. "').read(), globals())"
+        local port_arg = vim.g.proudini_port and (" -p " .. vim.g.proudini_port) or ""
+        local cmd = "python3 /home/kd/scripts/proudini_core/python/hq.py" .. port_arg .. " \"" .. code .. "\""
+        vim.fn.jobstart(cmd)
         vim.notify("Serveur Houdini RECHARGÉ 📡", vim.log.levels.INFO)
       end, { desc = "Houdini: Restart Proudini Server" })
 
