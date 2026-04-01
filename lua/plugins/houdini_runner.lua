@@ -181,6 +181,7 @@ return {
             
             vim.schedule(function()
                 vim.fn.termopen(hq_repl)
+                vim.bo[buf].filetype = "python" -- 🎨 Force la couleur Python
                 vim.cmd("startinsert") 
             end)
         end)
