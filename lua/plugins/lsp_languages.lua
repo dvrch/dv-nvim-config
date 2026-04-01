@@ -19,6 +19,7 @@ return {
                 diagnosticMode = "workspace",
                 -- Ajoute les chemins Houdini pour l'autocomplétion hou
                 extraPaths = {
+                  "/opt/hfs20.5.895/houdini/python3.11libs",
                   "/opt/hfs20.5/houdini/python3.11libs",
                   "/home/kd/Documents/proudini/P26_1/scripts/python",
                 },
