@@ -271,11 +271,11 @@ return {
         run_in_houdini(script, "Errors")
       end, { desc = "Houdini: Report Scene Errors" })
 
-      -- Live Logs
-      vim.keymap.set("n", "<leader>rw", run_live_logs, { desc = "Houdini: Watch Live Logs (tail -f)" })
-
       -- Interactive Shell
       vim.keymap.set("n", "<leader>rh", open_houdini_shell, { desc = "Houdini: Open Interactive Hython Shell" })
+
+      -- Live Logs
+      vim.keymap.set("n", "<leader>rw", run_live_logs, { desc = "Houdini: Watch Live Logs (tail -f)" })
 
       -- Start Live Logger in Houdini
       vim.keymap.set("n", "<leader>rx", function()
@@ -283,7 +283,14 @@ return {
         run_in_houdini(script)
         vim.notify("Live Logger démarré dans Houdini 🛰️", vim.log.levels.INFO)
       end, { desc = "Houdini: Start Live Logger" })
-      
+
+      -- Restart Houdini Server (In-process)
+      vim.keymap.set("n", "<leader>rj", function()
+        local script = "/home/kd/scripts/proudini_core/python/houdini_server.py"
+        run_in_houdini("exec(open('" .. script .. "').read(), globals())")
+        vim.notify("Serveur Houdini RECHARGÉ 📡", vim.log.levels.INFO)
+      end, { desc = "Houdini: Restart Proudini Server" })
+
     end,
   },
 }
