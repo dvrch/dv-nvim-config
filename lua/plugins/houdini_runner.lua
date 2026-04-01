@@ -136,22 +136,53 @@ return {
       end
 
       local function open_houdini_shell()
-        -- 🚀 FUSION : Au lieu de lancer un NOUVEAU hython (lourd), 
-        -- on ouvre le REPL symbiotique qui parle à l'instance GUI déjà ouverte.
-        local hq_repl = "python3 /home/kd/scripts/proudini_core/python/hq.py repl"
-        
-        -- Ajout du port si sélectionné
-        if vim.g.proudini_port ~= nil then
-           hq_repl = hq_repl .. " -p " .. vim.g.proudini_port
+        -- 🛰️ RÉCUPÉRATION DES INSTANCES
+        local script = "/home/kd/scripts/proudini_core/python/get_houdini_instances.py"
+        local handle = io.popen("python3 " .. script)
+        local result = handle:read("*a")
+        handle:close()
+
+        if result == "" or result == "[]\n" then
+            vim.notify("Aucune instance Houdini trouvée pour le terminal ❌", vim.log.levels.ERROR)
+            return
         end
 
-        vim.cmd("belowright 15split")
-        local buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_win_set_buf(0, buf)
-        vim.schedule(function()
-            -- Mode interactif instantané et partagé
-            vim.fn.termopen(hq_repl)
-            vim.cmd("startinsert") 
+        local ok, instances = pcall(vim.fn.json_decode, result)
+        if not ok or not instances then return end
+
+        local options = {}
+        for _, inst in ipairs(instances) do
+            table.insert(options, string.format("REPL Port %s : %s", inst.port, inst.project))
+        end
+
+        vim.ui.select(options, { prompt = "🎯 Ouvrir un terminal pour :" }, function(choice, idx)
+            if not choice then return end
+            
+            local port = instances[idx].port
+            local buf_name = "HoudiniRepl:" .. port
+            
+            -- Vérifier si le terminal existe déjà
+            for _, b in ipairs(vim.api.nvim_list_bufs()) do
+              local bname = vim.api.nvim_buf_get_name(b)
+              if bname:match(buf_name .. "$") then
+                vim.notify("Focus sur le Terminal Port " .. port .. " 📺", vim.log.levels.INFO)
+                vim.cmd("split") -- Ouvrir une fenêtre
+                vim.api.nvim_win_set_buf(0, b)
+                return
+              end
+            end
+
+            -- Sinon, créer un nouveau terminal lié au port
+            local hq_repl = "python3 /home/kd/scripts/proudini_core/python/hq.py repl -p " .. port
+            vim.cmd("belowright 15split")
+            local buf = vim.api.nvim_create_buf(false, true)
+            vim.api.nvim_buf_set_name(buf, buf_name)
+            vim.api.nvim_win_set_buf(0, buf)
+            
+            vim.schedule(function()
+                vim.fn.termopen(hq_repl)
+                vim.cmd("startinsert") 
+            end)
         end)
       end
 
