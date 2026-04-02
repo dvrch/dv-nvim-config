@@ -10,15 +10,23 @@ return {
         callback = function(args)
           local file = vim.api.nvim_buf_get_name(args.buf)
           if file:match("%.vfl$") or file:match("%.vex$") or file:match("houdini_temp") then
-            -- Forcer syntaxe vex si c'est un temp python/vex indéterminé
-            if not file:match("%.py$") then
+            -- Forcer syntaxe vex si c'est un temp indéterminé
+            if not file:match("%.py$") and not file:match("%.cpp$") and not file:match("%.cmd$") then
               vim.bo.filetype = "vex"
+              vim.bo.syntax = "vex"
             end
+          elseif file:match("%.cmd$") or file:match("hscript") then
+              -- HScript utilise une syntaxe de type shell
+              vim.bo.filetype = "bash"
+              vim.bo.syntax = "bash"
           end
           
-          -- Activer l'autocomplétion native par syntaxe
+          -- Activer l'autocomplétion native par syntaxe (Omnifunc)
           if vim.bo.filetype == "vex" then
             vim.bo.omnifunc = "syntaxcomplete#Complete"
+            -- Astuce experte : On demande à TreeSitter d'utiliser le parser C/C++ ultra-avancé
+            -- pour lire le VEX (qui est similaire), offrant une coloration bien supérieure !
+            pcall(vim.treesitter.language.register, 'c', 'vex')
           end
         end,
       })
