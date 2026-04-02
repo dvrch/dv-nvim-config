@@ -1,0 +1,303 @@
+{
+  "abs": {
+    "prefix": "abs",
+    "body": [
+      "abs($1)$0"
+    ],
+    "description": "VEX abs"
+  },
+  "addpoint": {
+    "prefix": "addpoint",
+    "body": [
+      "addpoint($1)$0"
+    ],
+    "description": "VEX addpoint"
+  },
+  "addprim": {
+    "prefix": "addprim",
+    "body": [
+      "addprim($1)$0"
+    ],
+    "description": "VEX addprim"
+  },
+  "addvertex": {
+    "prefix": "addvertex",
+    "body": [
+      "addvertex($1)$0"
+    ],
+    "description": "VEX addvertex"
+  },
+  "ch": {
+    "prefix": "ch",
+    "body": [
+      "ch($1)$0"
+    ],
+    "description": "VEX ch"
+  },
+  "chf": {
+    "prefix": "chf",
+    "body": [
+      "chf($1)$0"
+    ],
+    "description": "VEX chf"
+  },
+  "chi": {
+    "prefix": "chi",
+    "body": [
+      "chi($1)$0"
+    ],
+    "description": "VEX chi"
+  },
+  "chp": {
+    "prefix": "chp",
+    "body": [
+      "chp($1)$0"
+    ],
+    "description": "VEX chp"
+  },
+  "chramp": {
+    "prefix": "chramp",
+    "body": [
+      "chramp($1)$0"
+    ],
+    "description": "VEX chramp"
+  },
+  "chs": {
+    "prefix": "chs",
+    "body": [
+      "chs($1)$0"
+    ],
+    "description": "VEX chs"
+  },
+  "chu": {
+    "prefix": "chu",
+    "body": [
+      "chu($1)$0"
+    ],
+    "description": "VEX chu"
+  },
+  "chv": {
+    "prefix": "chv",
+    "body": [
+      "chv($1)$0"
+    ],
+    "description": "VEX chv"
+  },
+  "clamp": {
+    "prefix": "clamp",
+    "body": [
+      "clamp($1)$0"
+    ],
+    "description": "VEX clamp"
+  },
+  "cross": {
+    "prefix": "cross",
+    "body": [
+      "cross($1)$0"
+    ],
+    "description": "VEX cross"
+  },
+  "curlnoise": {
+    "prefix": "curlnoise",
+    "body": [
+      "curlnoise($1)$0"
+    ],
+    "description": "VEX curlnoise"
+  },
+  "detail": {
+    "prefix": "detail",
+    "body": [
+      "detail($1)$0"
+    ],
+    "description": "VEX detail"
+  },
+  "distance": {
+    "prefix": "distance",
+    "body": [
+      "distance($1)$0"
+    ],
+    "description": "VEX distance"
+  },
+  "dot": {
+    "prefix": "dot",
+    "body": [
+      "dot($1)$0"
+    ],
+    "description": "VEX dot"
+  },
+  "efit": {
+    "prefix": "efit",
+    "body": [
+      "efit($1)$0"
+    ],
+    "description": "VEX efit"
+  },
+  "fit": {
+    "prefix": "fit",
+    "body": [
+      "fit($1)$0"
+    ],
+    "description": "VEX fit"
+  },
+  "fit01": {
+    "prefix": "fit01",
+    "body": [
+      "fit01($1)$0"
+    ],
+    "description": "VEX fit01"
+  },
+  "fit10": {
+    "prefix": "fit10",
+    "body": [
+      "fit10($1)$0"
+    ],
+    "description": "VEX fit10"
+  },
+  "getpointattrib": {
+    "prefix": "getpointattrib",
+    "body": [
+      "getpointattrib($1)$0"
+    ],
+    "description": "VEX getpointattrib"
+  },
+  "length": {
+    "prefix": "length",
+    "body": [
+      "length($1)$0"
+    ],
+    "description": "VEX length"
+  },
+  "matrix": {
+    "prefix": "matrix",
+    "body": [
+      "matrix($1)$0"
+    ],
+    "description": "VEX matrix"
+  },
+  "noise": {
+    "prefix": "noise",
+    "body": [
+      "noise($1)$0"
+    ],
+    "description": "VEX noise"
+  },
+  "normalize": {
+    "prefix": "normalize",
+    "body": [
+      "normalize($1)$0"
+    ],
+    "description": "VEX normalize"
+  },
+  "npoints": {
+    "prefix": "npoints",
+    "body": [
+      "npoints($1)$0"
+    ],
+    "description": "VEX npoints"
+  },
+  "onoise": {
+    "prefix": "onoise",
+    "body": [
+      "onoise($1)$0"
+    ],
+    "description": "VEX onoise"
+  },
+  "point": {
+    "prefix": "point",
+    "body": [
+      "point($1)$0"
+    ],
+    "description": "VEX point"
+  },
+  "prim": {
+    "prefix": "prim",
+    "body": [
+      "prim($1)$0"
+    ],
+    "description": "VEX prim"
+  },
+  "printf": {
+    "prefix": "printf",
+    "body": [
+      "printf($1)$0"
+    ],
+    "description": "VEX printf"
+  },
+  "rand": {
+    "prefix": "rand",
+    "body": [
+      "rand($1)$0"
+    ],
+    "description": "VEX rand"
+  },
+  "random": {
+    "prefix": "random",
+    "body": [
+      "random($1)$0"
+    ],
+    "description": "VEX random"
+  },
+  "removepoint": {
+    "prefix": "removepoint",
+    "body": [
+      "removepoint($1)$0"
+    ],
+    "description": "VEX removepoint"
+  },
+  "removeprim": {
+    "prefix": "removeprim",
+    "body": [
+      "removeprim($1)$0"
+    ],
+    "description": "VEX removeprim"
+  },
+  "setdetailattrib": {
+    "prefix": "setdetailattrib",
+    "body": [
+      "setdetailattrib($1)$0"
+    ],
+    "description": "VEX setdetailattrib"
+  },
+  "setpointattrib": {
+    "prefix": "setpointattrib",
+    "body": [
+      "setpointattrib($1)$0"
+    ],
+    "description": "VEX setpointattrib"
+  },
+  "setprimattrib": {
+    "prefix": "setprimattrib",
+    "body": [
+      "setprimattrib($1)$0"
+    ],
+    "description": "VEX setprimattrib"
+  },
+  "snoise": {
+    "prefix": "snoise",
+    "body": [
+      "snoise($1)$0"
+    ],
+    "description": "VEX snoise"
+  },
+  "vector": {
+    "prefix": "vector",
+    "body": [
+      "vector($1)$0"
+    ],
+    "description": "VEX vector"
+  },
+  "vector4": {
+    "prefix": "vector4",
+    "body": [
+      "vector4($1)$0"
+    ],
+    "description": "VEX vector4"
+  },
+  "vertex": {
+    "prefix": "vertex",
+    "body": [
+      "vertex($1)$0"
+    ],
+    "description": "VEX vertex"
+  }
+}
