@@ -13,23 +13,24 @@ return {
   {
     "neovim/nvim-lspconfig",
     config = function()
-      -- Autocommande pour Sauvegarde Automatique et Relecture
-      vim.api.nvim_create_autocmd({ "FocusLost", "BufLeave", "TermLeave" }, {
+      -- Sauvegarde Automatique ULTRA-LIVE (Caractère par caractère)
+      vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI", "FocusLost", "BufLeave" }, {
         pattern = "/tmp/houdini_nvim/*",
         callback = function()
           if vim.bo.modified then
-            vim.cmd("silent! wall")
+            vim.cmd("silent! update")
           end
         end,
       })
       
-      -- Vérifier les changements extérieurs toutes les secondes (Houdini -> Neovim)
-      vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+      -- Vérifier les changements extérieurs (Houdini -> Neovim)
+      vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI", "BufEnter" }, {
         pattern = "/tmp/houdini_nvim/*",
         callback = function()
           vim.cmd("checktime")
         end,
       })
+
     end,
   }
 }
