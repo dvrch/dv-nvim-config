@@ -13,6 +13,10 @@ return {
   {
     "goopey7/unreal-support.nvim",
     event = { "User LoadHeavy" },
+    cond = function()
+      -- Ne charge ce plugin QUE si on est dans un projet Unreal
+      return vim.fn.glob("*.uproject") ~= ""
+    end,
     config = function()
 
       local engine_dir = vim.env.UNREAL_ENGINE_PATH or vim.fn.expand("~/aps/UE_5.7.3")
