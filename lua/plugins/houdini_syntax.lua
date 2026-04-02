@@ -16,13 +16,26 @@ return {
             end
           end
           
-          -- Activer l'autocomplétion native par syntaxe (Ctrl-X Ctrl-O)
+          -- Activer l'autocomplétion native par syntaxe
           if vim.bo.filetype == "vex" then
             vim.bo.omnifunc = "syntaxcomplete#Complete"
           end
         end,
       })
 
+    end,
+  },
+  
+  -- 🚀 AUTOMATISATION DE L'AUTOCOMPLÉTION VEX
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = { "hrsh7th/cmp-omni" },
+    opts = function(_, opts)
+      -- Ajoute la source Omni (pour VEX syntax) automatiquement aux suggestions
+      local cmp = require("cmp")
+      opts.sources = cmp.config.sources(vim.list_extend(opts.sources or {}, {
+        { name = "omni" },
+      }))
     end,
   },
 }
