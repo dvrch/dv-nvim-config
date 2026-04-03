@@ -1,4 +1,3 @@
 pack/plugins/start/plugin_neovim
-pack/plugins/start/plugin_neovim
 lazy-lock.json
-pack/plugins/start/plugin_neovim
+*.deb
