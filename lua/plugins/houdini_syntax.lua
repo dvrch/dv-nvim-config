@@ -6,10 +6,10 @@ return {
     config = function()
       -- Détection automatique des fichiers VEX et activation OmniCompletion
       vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-        pattern = { "*.vfl", "*.vex", "*houdini_temp*" },
+        pattern = { "*.vfl", "*.vex", "/tmp/houdini_nvim/*", "*houdini_temp*" },
         callback = function(args)
           local file = vim.api.nvim_buf_get_name(args.buf)
-          if file:match("%.vfl$") or file:match("%.vex$") or file:match("houdini_temp") then
+          if file:match("%.vfl$") or file:match("%.vex$") or file:match("houdini_nvim") or file:match("houdini_temp") then
             -- Forcer syntaxe vex si c'est un temp indéterminé
             if not file:match("%.py$") and not file:match("%.cpp$") and not file:match("%.cmd$") then
               vim.bo.filetype = "vex"
