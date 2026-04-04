@@ -100,37 +100,27 @@ return {
     },
   },
 
-  -- Jupytext : Config stable Markdown (On-The-Fly)
+  -- Jupytext : Config stable Markdown
   {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
-    init = function()
-      vim.g.jupytext_fmt = "markdown" -- Force le format de départ
-    end,
-    config = function()
-      require("jupytext").setup({ 
-        style = "markdown" 
+    opts = {
+      custom_outputs = false,
+      style = "markdown",
+      output_extension = "md",
+      force_ft = "markdown",
+    },
+    config = function(_, opts)
+      require("jupytext").setup(opts)
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.ipynb",
+        callback = function()
+          local base = vim.fn.expand("%:p:r")
+          os.remove(base .. ".md")
+          os.remove(base .. ".py")
+        end,
       })
-
-      -- 🔄 FONCTION : Basculer vue IPYNB (Markdown <-> Python)
-      vim.api.nvim_create_user_command("JupyterToggleView", function()
-        local current_fmt = vim.b.jupytext_fmt or "markdown"
-        local target_fmt = "markdown"
-
-        if current_fmt == "markdown" then
-          target_fmt = "py:percent"
-          vim.notify("🔄 Passage en Vue PYTHON (Expert)", vim.log.levels.INFO)
-        else
-          target_fmt = "markdown"
-          vim.notify("🔄 Passage en Vue MARKDOWN (IA/Notes)", vim.log.levels.INFO)
-        end
-        
-        vim.b.jupytext_fmt = target_fmt
-        vim.cmd("edit!")
-      end, {})
-
-      vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Toggle MD/PY View" })
     end,
   },
 
