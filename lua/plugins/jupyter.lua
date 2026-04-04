@@ -109,12 +109,20 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
+      -- 🔄 LOGIQUE DE FORMAT PRIORITAIRE
+      -- On définit le Markdown comme format par défaut globalement
+      vim.g.jupytext_fmt = "markdown"
+
       -- 🔄 FONCTION : Basculer vue IPYNB (Markdown <-> Python)
       vim.api.nvim_create_user_command("JupyterToggleView", function()
-        local current_fmt = vim.b.jupytext_fmt or "markdown"
-        local target_fmt = (current_fmt == "markdown") and "py:percent" or "markdown"
-        vim.notify("🔄 Passage en Vue " .. (target_fmt == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.INFO)
-        vim.b.jupytext_fmt = target_fmt
+        -- On récupère le format actuel, ou on utilise le défaut
+        local current = vim.b.jupytext_fmt or vim.g.jupytext_fmt or "markdown"
+        local target = (current == "markdown") and "py:percent" or "markdown"
+        
+        vim.notify("🔄 Passage en Vue " .. (target == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.INFO)
+        
+        -- On verrouille le format pour ce buffer
+        vim.b.jupytext_fmt = target
         vim.cmd("e!")
       end, {})
 
@@ -138,7 +146,7 @@ return {
               priority = 2100,
             })
           end
-          if line:find("```python") then
+          if line:find("```python") or line:find("# %%%") then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
               virt_lines = { { { "⚡ [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "Special" } } },
               virt_lines_above = true,
@@ -154,25 +162,25 @@ return {
         end
       end
 
-      -- ⚡ AUTOMATISMES (Mode par défaut + Décorations)
-      vim.api.nvim_create_autocmd({ "BufReadPost", "BufWinEnter" }, {
+      -- ⚡ AUTOMATISMES DE LECTURE (Anti-Métadonnées Corrompues)
+      vim.api.nvim_create_autocmd("BufReadPre", {
         pattern = "*.ipynb",
         callback = function(ev)
+          -- Si aucun format n est verrouillé, on force Markdown
           if not vim.b[ev.buf].jupytext_fmt then
-            vim.b[ev.buf].jupytext_fmt = "markdown" 
+            vim.b[ev.buf].jupytext_fmt = "markdown"
           end
-          vim.defer_fn(function() decorate_cells(ev.buf) end, 50)
         end,
       })
 
-      vim.api.nvim_create_autocmd({ "TextChanged", "CursorHold" }, {
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "CursorHold" }, {
         pattern = "*.ipynb",
         callback = function(ev)
           vim.defer_fn(function() decorate_cells(ev.buf) end, 50)
         end,
       })
 
-      -- 🔄 SYNCHRONISATION & NETTOYAGE SAVES
+      -- 🔄 NETTOYAGE SAVES & WATCHER
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.ipynb",
         callback = function()
@@ -182,7 +190,6 @@ return {
         end,
       })
 
-      -- 🔄 FILE WATCHER (Temps Réel)
       local watcher = nil
       local function start_watching(buf)
         if watcher then watcher:stop() end
@@ -191,12 +198,15 @@ return {
         watcher = vim.loop.new_fs_event()
         watcher:start(path, {}, vim.schedule_wrap(function(err)
           if not err and vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
+            -- On préserve le format verrouillé avant le reload
+            local saved_fmt = vim.b[buf].jupytext_fmt
             vim.cmd("e!")
+            vim.b[buf].jupytext_fmt = saved_fmt
           end
         end))
       end
 
-      vim.api.nvim_create_autocmd({ "BufWinEnter" }, {
+      vim.api.nvim_create_autocmd("BufWinEnter", {
         pattern = "*.ipynb",
         callback = function(ev)
           start_watching(ev.buf)
@@ -204,10 +214,7 @@ return {
       })
 
       vim.opt.autoread = true
-
-      -- Raccourci de secours
-      vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
-      vim.api.nvim_create_user_command("JupyterDecorate", decorate_cells, {})
+      vim.api.nvim_create_user_command("JupyterDecorate", function() decorate_cells() end, {})
     end,
   },
 
