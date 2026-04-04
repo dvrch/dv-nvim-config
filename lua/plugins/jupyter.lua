@@ -146,13 +146,13 @@ return {
               priority = 2100,
             })
           end
-          if line:find("```python") or line:find("# %%%") then
+          if line:find("```python", 1, true) or line:find("# %%", 1, true) then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
               virt_lines = { { { "⚡ [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "Special" } } },
               virt_lines_above = true,
               priority = 2000,
             })
-          elseif line:find("```") and not line:find("python") then
+          elseif line:find("```", 1, true) and not line:find("python", 1, true) then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
               virt_lines = { { { "🏁 [ FIN CELLULE CODE ] ────────────────────────────────────────────", "Special" } } },
               virt_lines_above = false,
