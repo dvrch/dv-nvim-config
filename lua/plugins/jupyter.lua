@@ -145,6 +145,24 @@ return {
         end
       end
 
+      -- 🔄 SYNCHRONISATION TEMPS RÉEL (File Watcher)
+      local watcher = nil
+      local function start_watching(buf)
+        if watcher then watcher:stop() end
+        local path = vim.api.nvim_buf_get_name(buf)
+        if path == "" or not path:find("agent_brain.ipynb") then return end
+
+        watcher = vim.loop.new_fs_event()
+        watcher:start(path, {}, vim.schedule_wrap(function(err, fname, events)
+          if err then return end
+          -- Recharger si le buffer est valide et non modifié localement
+          if vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
+            vim.cmd("checktime") -- Tentative standard
+            vim.cmd("e!")        -- Forcer le rechargement via Jupytext
+          end
+        end))
+      end
+
       -- Déclenchement automatique Ultra-Persistant
       vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
         pattern = "*.ipynb",
@@ -152,10 +170,14 @@ return {
           vim.defer_fn(function() 
             if vim.api.nvim_buf_is_valid(ev.buf) then
               decorate_cells(ev.buf) 
+              start_watching(ev.buf)
             end
           end, 50)
         end,
       })
+
+      -- Config Système pour autoread
+      vim.opt.autoread = true
 
       -- Nettoyage automatique des fichiers résiduels lors du save
       vim.api.nvim_create_autocmd("BufWritePost", {
