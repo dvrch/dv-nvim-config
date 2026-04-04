@@ -114,8 +114,8 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🎨 DÉCORATIONS VISUELLES "GHOST" (Ne s'enregistrent pas)
-      local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_cells")
+      -- 🎨 DÉCORATIONS VISUELLES "GHOST" PERMANENTES (Lignes Virtuelles)
+      local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
       local function decorate_cells()
         local buf = vim.api.nvim_get_current_buf()
         if vim.bo[buf].filetype ~= "markdown" then return end
@@ -125,26 +125,26 @@ return {
         
         for i, line in ipairs(lines) do
           if line:find("```python") then
-            -- Balise de Début
+            -- Ligne Virtuelle au-dessus du début
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { "#<<<< [ DÉBUT CELLULE CODE ] ──────────────────", "DiagnosticVirtualTextInfo" } },
-              virt_text_pos = "right_align",
+              virt_lines = { { { "#<<<< [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "DiagnosticInfo" } } },
+              virt_lines_above = true,
             })
           elseif line:find("```") and not line:find("python") then
-            -- Balise de Fin
+            -- Ligne Virtuelle au-dessous de la fin
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { "#>>>> [ FIN CELLULE CODE ] ────────────────────", "DiagnosticVirtualTextInfo" } },
-              virt_text_pos = "right_align",
+              virt_lines = { { { "#>>>> [ FIN CELLULE CODE ] ────────────────────────────────────────────", "DiagnosticInfo" } } },
+              virt_lines_above = false,
             })
           end
         end
       end
 
-      -- Déclenchement automatique transparent
+      -- Déclenchement automatique robuste
       vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave" }, {
         pattern = "*.ipynb",
         callback = function()
-          vim.defer_fn(decorate_cells, 50) -- Petit délai pour laisser Jupytext finir son rendu
+          vim.defer_fn(decorate_cells, 50)
         end,
       })
 
