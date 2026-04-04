@@ -114,11 +114,11 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🎨 DÉCORATIONS VISUELLES "GHOST" PERMANENTES (Lignes Virtuelles)
+      -- 🎨 DÉCORATIONS VISUELLES "GHOST" PERMANENTES (Lignes Virtuelles de Haute Priorité)
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
-      local function decorate_cells()
-        local buf = vim.api.nvim_get_current_buf()
-        if vim.bo[buf].filetype ~= "markdown" then return end
+      local function decorate_cells(buf)
+        buf = buf or vim.api.nvim_get_current_buf()
+        if vim.bo[buf].filetype ~= "markdown" or not vim.api.nvim_buf_is_valid(buf) then return end
         
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
@@ -129,22 +129,28 @@ return {
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { { "#<<<< [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "DiagnosticInfo" } } },
               virt_lines_above = true,
+              priority = 2000,
             })
           elseif line:find("```") and not line:find("python") then
-            -- Ligne Virtuelle au-dessous de la fin
+            -- Ligne Virtuelle au-dessous de la fin (Détection plus souple)
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { { "#>>>> [ FIN CELLULE CODE ] ────────────────────────────────────────────", "DiagnosticInfo" } } },
               virt_lines_above = false,
+              priority = 2000,
             })
           end
         end
       end
 
-      -- Déclenchement automatique robuste
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave" }, {
+      -- Déclenchement automatique Ultra-Persistant
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
         pattern = "*.ipynb",
-        callback = function()
-          vim.defer_fn(decorate_cells, 50)
+        callback = function(ev)
+          vim.defer_fn(function() 
+            if vim.api.nvim_buf_is_valid(ev.buf) then
+              decorate_cells(ev.buf) 
+            end
+          end, 50)
         end,
       })
 
