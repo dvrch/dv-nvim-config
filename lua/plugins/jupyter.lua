@@ -145,18 +145,25 @@ return {
         local is_py = fmt == "py:percent"
 
         for i, line in ipairs(lines) do
-          -- MASQUER LES BALISES INTERNES JUPYTEXT
-          if line:find("#region", 1, true) or line:find("#endregion", 1, true) or line:find("<!--", 1, true) then
+
+          -- 🏷️ BALISES VISIBLES NON-ÉDITABLES (Virt Lines permanentes)
+
+          -- Marqueur de REGION Jupytext (début de bloc Markdown)
+          if line:find("#region", 1, true) or line:find("<!-- #region", 1, true) then
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { "", "Comment" } },
-              virt_text_pos = "overlay",
-              conceal = "",
-              priority = 2100,
+              virt_lines = { { { "┄┄┄ ◈ DÉBUT RÉGION MARKDOWN ◈ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄", "DiagnosticHint" } } },
+              virt_lines_above = true, priority = 2100,
+            })
+          -- Marqueur de FIN REGION Jupytext
+          elseif line:find("#endregion", 1, true) or line:find("<!-- #endregion", 1, true) then
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+              virt_lines = { { { "┄┄┄ ◇ FIN RÉGION MARKDOWN ◇ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄", "DiagnosticHint" } } },
+              virt_lines_above = false, priority = 2100,
             })
           end
 
           if not is_py then
-            -- === VUE MARKDOWN : ```python → DÉBUT, ``` → FIN ===
+            -- === VUE MARKDOWN : ```python → DÉBUT, ``` seul → FIN ===
             if line:find("```python", 1, true) then
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
