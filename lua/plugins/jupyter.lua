@@ -137,8 +137,10 @@ return {
         if not vim.api.nvim_buf_is_valid(buf) then return end
         vim.api.nvim_buf_clear_namespace(buf, ns_ghost, 0, -1)
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+
         for i, line in ipairs(lines) do
-          if line:find("#region") or line:find("#endregion") or line:find("<!--") then
+          -- 1. MASQUER LES MARQUEURS GHOSTS (Régions / Balises Jupytext)
+          if line:find("#region", 1, true) or line:find("#endregion", 1, true) or line:find("<!--", 1, true) then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
               virt_text = { { "", "Comment" } },
               virt_text_pos = "overlay",
@@ -146,15 +148,27 @@ return {
               priority = 2100,
             })
           end
-          if line:find("```python", 1, true) or line:find("# %%", 1, true) then
-            vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_lines = { { { "⚡ [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "Special" } } },
+
+          -- 2. DÉTECTION ET BALISAGE DES CELLULES (MD vs CODE)
+          -- Pour Markdown (clash Python-Percent)
+          if line:find("```python", 1, true) or (line:find("# %%", 1, true) and not line:find("markdown", 1, true)) then
+             -- C est une cellule de CODE
+             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
+              virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
+              virt_lines_above = true,
+              priority = 2000,
+            })
+          elseif line:find("# %% [markdown]", 1, true) then
+             -- C est une cellule de MARKDOWN
+             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
+              virt_lines = { { { "📝 [ CELLULE MARKDOWN ] ──────────────────────────────────────────", "String" } } },
               virt_lines_above = true,
               priority = 2000,
             })
           elseif line:find("```", 1, true) and not line:find("python", 1, true) then
+            -- Fin de bloc (Markdown standard)
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_lines = { { { "🏁 [ FIN CELLULE CODE ] ────────────────────────────────────────────", "Special" } } },
+              virt_lines = { { { "🏁 [ FIN DE CELLULE ] ───────────────────────────────────────────", "Comment" } } },
               virt_lines_above = false,
               priority = 2000,
             })
