@@ -109,37 +109,35 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🔄 FORCER LE MODE MARKDOWN POUR L AFFICHAGE
-      vim.api.nvim_create_autocmd("BufReadPost", {
-        pattern = "*.ipynb",
-        callback = function()
-          vim.b.jupytext_fmt = "markdown" -- Force l'affichage Design
-        end,
-      })
+      -- 🔄 FONCTION : Basculer vue IPYNB (Markdown <-> Python)
+      vim.api.nvim_create_user_command("JupyterToggleView", function()
+        local current_fmt = vim.b.jupytext_fmt or "markdown"
+        local target_fmt = (current_fmt == "markdown") and "py:percent" or "markdown"
+        vim.notify("🔄 Passage en Vue " .. (target_fmt == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.INFO)
+        vim.b.jupytext_fmt = target_fmt
+        vim.cmd("e!")
+      end, {})
 
-      -- 🎨 DÉCORATIONS "MASTER GHOST" (Invisibilité des régions + Balisage permanent)
+      -- ⌨️ RACCOURCIS
+      vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Basculer Vue Design/Action" })
+      vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
+
+      -- 🎨 DÉCORATIONS "MASTER GHOST"
       local ns_ghost = vim.api.nvim_create_namespace("jupyter_master_ghost")
-      
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
         if not vim.api.nvim_buf_is_valid(buf) then return end
-        
         vim.api.nvim_buf_clear_namespace(buf, ns_ghost, 0, -1)
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        
         for i, line in ipairs(lines) do
-          -- 1. MASQUER LES MARQUEURS JUPYTEXT (Régions)
-          if line:find("#region") or line:find("#endregion") then
-            -- On cache la ligne réelle
+          if line:find("#region") or line:find("#endregion") or line:find("<!--") then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_text = { { "", "Comment" } }, -- On vide le texte réel visuellement
+              virt_text = { { "", "Comment" } },
               virt_text_pos = "overlay",
               conceal = "",
               priority = 2100,
             })
           end
-
-          -- 2. DESSINER LES BALISES GHOST (Lignes Virtuelles Permanentes)
           if line:find("```python") then
             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
               virt_lines = { { { "⚡ [ DÉBUT CELLULE CODE ] ──────────────────────────────────────────", "Special" } } },
@@ -156,49 +154,25 @@ return {
         end
       end
 
-      -- Déclenchement automatique Permanent
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "CursorHold" }, {
+      -- ⚡ AUTOMATISMES (Mode par défaut + Décorations)
+      vim.api.nvim_create_autocmd({ "BufReadPost", "BufWinEnter" }, {
+        pattern = "*.ipynb",
+        callback = function(ev)
+          if not vim.b[ev.buf].jupytext_fmt then
+            vim.b[ev.buf].jupytext_fmt = "markdown" 
+          end
+          vim.defer_fn(function() decorate_cells(ev.buf) end, 50)
+        end,
+      })
+
+      vim.api.nvim_create_autocmd({ "TextChanged", "CursorHold" }, {
         pattern = "*.ipynb",
         callback = function(ev)
           vim.defer_fn(function() decorate_cells(ev.buf) end, 50)
         end,
       })
 
-      -- 🔄 SYNCHRONISATION TEMPS RÉEL (File Watcher)
-      local watcher = nil
-      local function start_watching(buf)
-        if watcher then watcher:stop() end
-        local path = vim.api.nvim_buf_get_name(buf)
-        if path == "" or not path:find("agent_brain.ipynb") then return end
-
-        watcher = vim.loop.new_fs_event()
-        watcher:start(path, {}, vim.schedule_wrap(function(err, fname, events)
-          if err then return end
-          -- Recharger si le buffer est valide et non modifié localement
-          if vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
-            vim.cmd("checktime") -- Tentative standard
-            vim.cmd("e!")        -- Forcer le rechargement via Jupytext
-          end
-        end))
-      end
-
-      -- Déclenchement automatique Ultra-Persistant
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
-        pattern = "*.ipynb",
-        callback = function(ev)
-          vim.defer_fn(function() 
-            if vim.api.nvim_buf_is_valid(ev.buf) then
-              decorate_cells(ev.buf) 
-              start_watching(ev.buf)
-            end
-          end, 50)
-        end,
-      })
-
-      -- Config Système pour autoread
-      vim.opt.autoread = true
-
-      -- Nettoyage automatique des fichiers résiduels lors du save
+      -- 🔄 SYNCHRONISATION & NETTOYAGE SAVES
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.ipynb",
         callback = function()
@@ -207,6 +181,29 @@ return {
           os.remove(base .. ".py")
         end,
       })
+
+      -- 🔄 FILE WATCHER (Temps Réel)
+      local watcher = nil
+      local function start_watching(buf)
+        if watcher then watcher:stop() end
+        local path = vim.api.nvim_buf_get_name(buf)
+        if path == "" or not path:find("agent_brain.ipynb") then return end
+        watcher = vim.loop.new_fs_event()
+        watcher:start(path, {}, vim.schedule_wrap(function(err)
+          if not err and vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
+            vim.cmd("e!")
+          end
+        end))
+      end
+
+      vim.api.nvim_create_autocmd({ "BufWinEnter" }, {
+        pattern = "*.ipynb",
+        callback = function(ev)
+          start_watching(ev.buf)
+        end,
+      })
+
+      vim.opt.autoread = true
 
       -- Raccourci de secours
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
