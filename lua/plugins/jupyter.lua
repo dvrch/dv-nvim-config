@@ -105,11 +105,16 @@ return {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
-    opts = {},
+    opts = {
+      custom_outputs = false,
+      style = "markdown",
+      output_extension = "md",
+      force_ft = "markdown",
+    },
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🔄 LOGIQUE DE NETTOYAGE AGRESSIF
+      -- 🔄 NETTOYAGE SIDECARS
       local function cleanup_sidecars()
         local base = vim.fn.expand("%:p:r")
         if base == "" then return end
@@ -117,97 +122,123 @@ return {
         os.remove(base .. ".py")
       end
 
-      -- 🔄 FONCTION : Basculer vue IPYNB (MD <-> PY) - ATOMIQUE
+      -- 🔄 TOGGLE ATOMIQUE (MD <-> PY)
       vim.api.nvim_create_user_command("JupyterToggleView", function()
-        -- 1. Sauvegarder l état actuel
         if vim.bo.modified then vim.cmd("w") end
-        
         local current = vim.b.jupytext_fmt or "markdown"
         local target = (current == "markdown") and "py:percent" or "markdown"
-        
-        -- 2. Nettoyer avant changement pour éviter toute confusion Jupytext
         cleanup_sidecars()
-        
-        vim.notify("🚀 Transition vers " .. (target == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.WARN)
-        
-        -- 3. Appliquer et Recharger
+        vim.notify("🚀 Vue : " .. (target == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.WARN)
         vim.b.jupytext_fmt = target
         vim.cmd("e!")
-        
-        -- 4. Forcer le filetype pour garantir les décorations
-        if target == "markdown" then vim.bo.filetype = "markdown" end
       end, {})
 
       -- ⌨️ RACCOURCIS
-      vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule Atomique MD/PY" })
+      vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
 
-      -- 🎨 DÉCORATIONS "MASTER GHOST"
-      local ns_ghost = vim.api.nvim_create_namespace("jupyter_master_ghost")
+      -- 🎨 DÉCORATIONS "GHOST" PERMANENTES ET UNIVERSELLES
+      local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
         if not vim.api.nvim_buf_is_valid(buf) then return end
-        vim.api.nvim_buf_clear_namespace(buf, ns_ghost, 0, -1)
-        
-        -- On force le concealment
+        vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
         vim.opt_local.conceallevel = 2
 
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        local fmt = vim.b[buf].jupytext_fmt or "markdown"
+        local is_py = fmt == "py:percent"
+
         for i, line in ipairs(lines) do
+          -- MASQUER LES BALISES INTERNES JUPYTEXT
           if line:find("#region", 1, true) or line:find("#endregion", 1, true) or line:find("<!--", 1, true) then
-            vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_text = { { "", "Comment" } },
               virt_text_pos = "overlay",
               conceal = "",
               priority = 2100,
             })
           end
-          
-          -- Détection des blocs intelligente (MD vs PY)
-          if line:find("```python", 1, true) or (line:find("# %%", 1, true) and not line:find("markdown", 1, true)) then
-             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
-              virt_lines_above = true, priority = 2000,
-            })
-          elseif line:find("# %% [markdown]", 1, true) then
-             vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_lines = { { { "📝 [ CELLULE MARKDOWN ] ──────────────────────────────────────────", "String" } } },
-              virt_lines_above = true, priority = 2000,
-            })
-          elseif line:find("```", 1, true) and not line:find("python", 1, true) then
-            vim.api.nvim_buf_set_extmark(buf, ns_ghost, i - 1, 0, {
-              virt_lines = { { { "🏁 [ FIN DE CELLULE ] ───────────────────────────────────────────", "Comment" } } },
-              virt_lines_above = false, priority = 2000,
-            })
+
+          if not is_py then
+            -- === VUE MARKDOWN : ```python → DÉBUT, ``` → FIN ===
+            if line:find("```python", 1, true) then
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
+                virt_lines_above = true,
+                priority = 2000,
+              })
+            elseif line:find("```", 1, true) and not line:find("python", 1, true) then
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "🏁 [ FIN CELLULE CODE ] ─────────────────────────────────────────", "Comment" } } },
+                virt_lines_above = false,
+                priority = 2000,
+              })
+            end
+          else
+            -- === VUE PYTHON : # %% → DÉBUT CELLULE + FIN de la précédente ===
+            if line:find("# %% [markdown]", 1, true) then
+              -- Fin de la cellule précédente (au-dessus)
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "🏁 [ FIN CELLULE ] ──────────────────────────────────────────────", "Comment" } } },
+                virt_lines_above = true,
+                priority = 2000,
+              })
+              -- Début de cette cellule Markdown (en-dessous)
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "📝 [ CELLULE MARKDOWN ] ─────────────────────────────────────────", "String" } } },
+                virt_lines_above = false,
+                priority = 1999,
+              })
+            elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
+              -- Fin de la cellule précédente (au-dessus)
+              if i > 1 then
+                vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                  virt_lines = { { { "🏁 [ FIN CELLULE ] ──────────────────────────────────────────────", "Comment" } } },
+                  virt_lines_above = true,
+                  priority = 2000,
+                })
+              end
+              -- Début de cette cellule Code (en-dessous)
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
+                virt_lines_above = false,
+                priority = 1999,
+              })
+            end
           end
         end
       end
 
-      -- ⚡ AUTOMATISMES (Mode par défaut + Sécurité)
+      -- ⚡ AUTOMATISMES (Forçage MD par défaut + Décorations)
       vim.api.nvim_create_autocmd("BufReadPre", {
         pattern = "*.ipynb",
         callback = function(ev)
-          -- Nettoyage préventif pour garantir que Jupytext ne voit que le JSON
           cleanup_sidecars()
           if not vim.b[ev.buf].jupytext_fmt then
-            vim.b[ev.buf].jupytext_fmt = "markdown" 
+            vim.b[ev.buf].jupytext_fmt = "markdown"
           end
         end,
       })
 
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "CursorHold" }, {
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
         pattern = "*.ipynb",
         callback = function(ev)
-          vim.defer_fn(function() decorate_cells(ev.buf) end, 50)
+          vim.defer_fn(function()
+            if vim.api.nvim_buf_is_valid(ev.buf) then
+              decorate_cells(ev.buf)
+            end
+          end, 50)
         end,
       })
 
+      -- Nettoyage auto après sauvegarde
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.ipynb",
         callback = cleanup_sidecars,
       })
 
-      -- 🔄 FILE WATCHER
+      -- 🔄 FILE WATCHER (Temps Réel)
       local watcher = nil
       local function start_watching(buf)
         if watcher then watcher:stop() end
@@ -244,3 +275,4 @@ return {
     },
   },
 }
+
