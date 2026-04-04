@@ -105,16 +105,19 @@ return {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
-    opts = {
-      custom_outputs = false,
-      style = "markdown",
-      output_extension = "md",
-      force_ft = "markdown",
-    },
+    opts = {},
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🎨 DÉCORATIONS VISUELLES "GHOST" PERMANENTES (Lignes Virtuelles de Haute Priorité)
+      -- 🔄 FORCER LE MODE MARKDOWN POUR L AFFICHAGE
+      vim.api.nvim_create_autocmd("BufReadPost", {
+        pattern = "*.ipynb",
+        callback = function()
+          vim.b.jupytext_fmt = "markdown" -- Force l'affichage Design
+        end,
+      })
+
+      -- 🎨 DÉCORATIONS VISUELLES "GHOST" PERMANENTES (Lignes Fantômes)
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
