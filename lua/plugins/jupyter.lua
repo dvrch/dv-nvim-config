@@ -105,12 +105,7 @@ return {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
-    opts = {
-      custom_outputs = false,
-      style = "markdown",
-      output_extension = "md",
-      force_ft = "markdown",
-    },
+    opts = {}, -- ⚠️ PAS de style/output_extension ici → ça corrompt le .ipynb !
     config = function(_, opts)
       require("jupytext").setup(opts)
 
