@@ -14,24 +14,69 @@ return {
       vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
       
-      -- FONCTION DE SECOURS : Exécuter une plage avec affichage forcé
+      -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé (via Visual Mode)
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
-        vim.cmd(string.format("silent! %d,%dMoltenEvaluateVisual", start_l, end_l))
+        -- Sauvegarde de la position du curseur
+        local pos = vim.api.nvim_win_get_cursor(0)
+        -- Sélectionner visuellement les lignes exactes (MoltenEvaluateVisual a besoin des marques V)
+        vim.api.nvim_win_set_cursor(0, {start_l, 0})
+        vim.cmd("normal! V")
+        vim.api.nvim_win_set_cursor(0, {end_l, 0})
+        vim.cmd("MoltenEvaluateVisual")
+        -- Quitter le mode visuel
+        local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
+        vim.api.nvim_feedkeys(esc, "x", false)
+        -- Restaurer le curseur
+        pcall(vim.api.nvim_win_set_cursor, 0, pos)
       end
 
-      -- DÉTECTION DES LIMITES DE CELLULES
+      -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE (Parfaite synchro avec les décorateurs)
       _G.get_cells = function()
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
         local cells = {}
-        local current_start = 1
-        for i, line in ipairs(lines) do
-          if line:match("^# %%%%") or line:match("^# %%") or line:match("^```python") then
-            if i > 1 then table.insert(cells, {s = current_start, e = i - 1}) end
-            current_start = i
+        
+        local is_py = false
+        for _, l in ipairs(lines) do
+          if l:match("^# %%%%") or l:match("^# %% ") then is_py = true break end
+        end
+
+        if is_py then
+          -- VUE PYTHON (# %%)
+          local current_start = 1
+          for i, line in ipairs(lines) do
+            if line:match("^# %%%%") or line:match("^# %%") then
+              if i > 1 then 
+                -- Python comments ne dérangent pas Jupyter
+                table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1}) 
+              end
+              current_start = i
+            end
+          end
+          if #lines >= current_start then
+            table.insert(cells, {s = current_start, e = #lines, code_s = current_start, code_e = #lines})
+          end
+        else
+          -- VUE MARKDOWN (```python)
+          local in_code = false
+          local cell_start = 1
+          for i, line in ipairs(lines) do
+            if line:match("^%s*```") then
+              if not in_code then
+                cell_start = i
+                in_code = true
+              else
+                local cell_end = i
+                -- La zone cliquable va de ``` à ```, mais l'exécution OMET les balises !
+                -- Sinon Jupyter plante sur "SyntaxError: invalid syntax"
+                if cell_end - 1 >= cell_start + 1 then
+                  table.insert(cells, {s = cell_start, e = cell_end, code_s = cell_start + 1, code_e = cell_end - 1})
+                end
+                in_code = false
+              end
+            end
           end
         end
-        table.insert(cells, {s = current_start, e = #lines})
         return cells
       end
 
@@ -43,7 +88,7 @@ return {
         local cells = _G.get_cells()
         for _, cell in ipairs(cells) do
           if cursor_line >= cell.s and cursor_line <= cell.e then
-            _G.molten_run_range(cell.s, cell.e)
+            _G.molten_run_range(cell.code_s, cell.code_e)
             break
           end
         end
@@ -53,6 +98,7 @@ return {
       vim.api.nvim_create_user_command("MoltenRunAll", function()
         vim.cmd("silent! %MoltenDelete")
         local cells = _G.get_cells()
+        if #cells == 0 then return end
         vim.notify("🚀 Exécution de " .. #cells .. " cellules...", vim.log.levels.INFO)
         
         local idx = 1
@@ -62,9 +108,9 @@ return {
             return 
           end
           local c = cells[idx]
-          _G.molten_run_range(c.s, c.e)
+          _G.molten_run_range(c.code_s, c.code_e)
           idx = idx + 1
-          vim.defer_fn(next_c, 500) -- Délai pour laisser l'output s'afficher
+          vim.defer_fn(next_c, 500) -- Délai pour laisser l'output s'afficher sans collision
         end
         next_c()
       end, {})
@@ -74,7 +120,7 @@ return {
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
         local cells = _G.get_cells()
         for _, cell in ipairs(cells) do
-          if cell.e < cursor_line then _G.molten_run_range(cell.s, cell.e) end
+          if cell.e < cursor_line then _G.molten_run_range(cell.code_s, cell.code_e) end
         end
       end, {})
 
@@ -82,7 +128,7 @@ return {
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
         local cells = _G.get_cells()
         for _, cell in ipairs(cells) do
-          if cell.s >= cursor_line then _G.molten_run_range(cell.s, cell.e) end
+          if cell.s >= cursor_line then _G.molten_run_range(cell.code_s, cell.code_e) end
         end
       end, {})
     end,
