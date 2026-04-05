@@ -48,6 +48,12 @@ function M.decorate(buf)
 
   if not M.is_enabled(buf) then return end
 
+  -- Configurer les fenêtres pour que le conceal ne saute jamais sous le curseur
+  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+    vim.api.nvim_win_set_option(win, "conceallevel", 2)
+    vim.api.nvim_win_set_option(win, "concealcursor", "nvic")
+  end
+
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   if #lines == 0 then return end
 
@@ -60,12 +66,12 @@ function M.decorate(buf)
     end
   end
 
-  -- Masquage de la ligne originale (pour un look "ghost" permanent)
+  -- Masquage VRAI de la ligne (utilisation native de conceal au lieu de virt_text)
   local function mask_line(idx, line)
-    local mask = string.rep(" ", vim.fn.strdisplaywidth(line))
+    if #line == 0 then return end
     vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-      virt_text = { { mask, "Conceal" } },
-      virt_text_pos = "overlay",
+      end_col = #line,
+      conceal = "",
       priority = 2100,
     })
   end
