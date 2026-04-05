@@ -174,12 +174,12 @@ return {
         local in_code_block = false
 
         for i, line in ipairs(lines) do
+          -- 🧼 FONCTION DE MASQUAGE TOTAL (Voile de la longueur de la ligne)
           local function hide_line()
+            local mask = string.rep(" ", math.max(#line, 1))
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { " ", "NonText" } },
+              virt_text = { { mask, "Conceal" } },
               virt_text_pos = "overlay",
-              line_hl_group = "Conceal",
-              conceal = " ",
               priority = 2500,
             })
           end
@@ -187,7 +187,7 @@ return {
           if not is_py then
             -- ══════════════ VUE MARKDOWN (DESIGN) ══════════════
             
-            -- 1. ORDRE CRITIQUE : Checker ENDREGION avant REGION (pour éviter collision)
+            -- 1. ORDRE CRITIQUE : Checker ENDREGION avant REGION
             if line:match("<!-- #endregion") or line:match("#endregion") then
               hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
@@ -200,17 +200,15 @@ return {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
                 virt_lines_above = true, priority = 2400 })
 
-            -- 2. BLOCS DE CODE (Backticks)
+            -- 2. BLOCS DE CODE (Backticks + Langage)
             elseif line:match("^%s*```") then
-              hide_line()
+              hide_line() -- Cache les backticks ET le mot "python"
               if not in_code_block then
-                -- DÉBUT DU CODE
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                  virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
+                  virt_lines = { { { "⚡ ╔══ CELLULE CODE (Python) ══════════════════════════════════════╗", "Special" } } },
                   virt_lines_above = true, priority = 2400 })
                 in_code_block = true
               else
-                -- FIN DU CODE
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                   virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
                   virt_lines_above = false, priority = 2400 })
