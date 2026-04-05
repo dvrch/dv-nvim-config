@@ -14,15 +14,35 @@ return {
       vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
       
-      -- FONCTION OBLIGATOIRE : API d'Éxécution Parfaite
-      _G.molten_run_range = function(start_l, end_l)
+      -- FONCTION OBLIGATOIRE : API d'Éxécution Parfaite avec Auto-Magics
+      _G.molten_run_range = function(start_l, end_l, lang)
         if start_l > end_l then return end
         
-        -- EXÉCUTION ATOMIQUE ET SYNCHRONE
-        -- Nous invoquons directement la vraie fonction backend de Molten !
-        -- Plus aucun décalage d'output. Plus aucune erreur Liée au Mode Visuel.
-        -- Les coordonnées exactes traversent l'API Python instantanément !
-        pcall(vim.fn.MoltenEvaluateRange, start_l, end_l)
+        -- Détection intelligente du Magic Jupyter approprié
+        local magic = ""
+        if lang and lang ~= "" and lang ~= "python" then
+           local magics = {
+               bash = "%%bash", bat = "%%bash", sh = "%%bash", zsh = "%%bash",
+               html = "%%html", js = "%%javascript", javascript = "%%javascript",
+               latex = "%%latex", tex = "%%latex", ruby = "%%ruby",
+               perl = "%%perl", svg = "%%svg", md = "%%markdown",
+               mermaid = "%%mermaid" -- (nécessite l'extension jupyter-mermaid)
+           }
+           magic = magics[lang] or ("%%" .. lang)
+        end
+        
+        -- EXÉCUTION ATOMIQUE ET SYNCHRONE AVEC/SANS MAGIC
+        if magic ~= "" then
+            -- Injection furtive du magic Jupyter pour tromper Molten et le Kernel
+            vim.api.nvim_buf_set_lines(0, start_l - 1, start_l - 1, false, { magic })
+            -- La plage décale virtuellement de 1 ligne car on vient d'insérer
+            pcall(vim.fn.MoltenEvaluateRange, start_l, end_l + 1)
+            -- Purge immédiate de la commande Magic, le buffer redevient propre.
+            -- Neovim décale l'extmark Molten automatiquement au bon endroit !
+            vim.api.nvim_buf_set_lines(0, start_l - 1, start_l, false, {})
+        else
+            pcall(vim.fn.MoltenEvaluateRange, start_l, end_l)
+        end
       end
 
       -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE
@@ -39,23 +59,30 @@ return {
           local current_start = 1
           for i, line in ipairs(lines) do
             if line:match("^# %%%%") or line:match("^# %%") then
-              if i > 1 then table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1}) end
+              if i > 1 then table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1, lang = "python"}) end
               current_start = i
             end
           end
-          if #lines >= current_start then table.insert(cells, {s = current_start, e = #lines, code_s = current_start, code_e = #lines}) end
+          if #lines >= current_start then table.insert(cells, {s = current_start, e = #lines, code_s = current_start, code_e = #lines, lang = "python"}) end
         else
           local in_code = false
           local cell_start = 1
+          local current_lang = "python"
           for i, line in ipairs(lines) do
             if line:match("^%s*```") then
               if not in_code then
                 cell_start = i
+                local parsed_lang = line:match('languageId": "([^"]+)"') or line:match("^%s*```(%w+)") or "python"
+                current_lang = parsed_lang:lower()
                 in_code = true
               else
                 local cell_end = i
                 if cell_end - 1 >= cell_start + 1 then
-                  table.insert(cells, {s = cell_start, e = cell_end, code_s = cell_start + 1, code_e = cell_end - 1})
+                  table.insert(cells, {
+                    s = cell_start, e = cell_end, 
+                    code_s = cell_start + 1, code_e = cell_end - 1,
+                    lang = current_lang
+                  })
                 end
                 in_code = false
               end
@@ -78,7 +105,7 @@ return {
             return
           end
           local c = cells_list[idx]
-          _G.molten_run_range(c.code_s, c.code_e)
+          _G.molten_run_range(c.code_s, c.code_e, c.lang)
           idx = idx + 1
           vim.defer_fn(next_c, 500)
         end
@@ -91,7 +118,7 @@ return {
         local pos = vim.api.nvim_win_get_cursor(0)
         for _, cell in ipairs(_G.get_cells()) do
           if pos[1] >= cell.s and pos[1] <= cell.e then
-            _G.molten_run_range(cell.code_s, cell.code_e)
+            _G.molten_run_range(cell.code_s, cell.code_e, cell.lang)
             -- Restauration immédiate si cellule unique
             vim.defer_fn(function() pcall(vim.api.nvim_win_set_cursor, 0, pos) end, 300)
             break
@@ -114,7 +141,7 @@ return {
         if #intersected > 0 then
            run_cells_async(intersected, "🚀 Sélection Smart", pos)
         else
-           _G.molten_run_range(start_l, end_l)
+           _G.molten_run_range(start_l, end_l, "python")
            vim.defer_fn(function() pcall(vim.api.nvim_win_set_cursor, 0, pos) end, 300)
         end
       end, { range = true })
