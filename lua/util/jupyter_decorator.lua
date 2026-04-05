@@ -10,9 +10,38 @@ local function setup_hls()
 end
 
 --- @param buf number | nil
+--- @return boolean
+function M.is_enabled(buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  local val = vim.b[buf].jupyter_decorate_enabled
+  -- Par défaut, activé pour ipynb, désactivé ailleurs
+  if val == nil then
+    local name = vim.api.nvim_buf_get_name(buf)
+    return name:match("%.ipynb$") ~= nil
+  end
+  return val
+end
+
+--- @param buf number | nil
+function M.toggle(buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  local new_state = not M.is_enabled(buf)
+  vim.b[buf].jupyter_decorate_enabled = new_state
+  
+  if new_state then
+    M.decorate(buf)
+    vim.notify("🎨 Décorations Jupyter : ACTIVÉES", vim.log.levels.INFO)
+  else
+    vim.api.nvim_buf_clear_namespace(buf, M.ns_cell, 0, -1)
+    vim.notify("🎨 Décorations Jupyter : DÉSACTIVÉES", vim.log.levels.WARN)
+  end
+end
+
+--- @param buf number | nil
 function M.decorate(buf)
   buf = buf or vim.api.nvim_get_current_buf()
   if not vim.api.nvim_buf_is_valid(buf) then return end
+  if not M.is_enabled(buf) then return end
   
   setup_hls()
   vim.api.nvim_buf_clear_namespace(buf, M.ns_cell, 0, -1)

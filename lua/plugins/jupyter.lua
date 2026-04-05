@@ -94,8 +94,8 @@ return {
       { "<leader>ja", ":MoltenRunAll<cr>", desc = "Run All Cells" },
       { "<leader>ju", ":MoltenRunAbove<cr>", desc = "Run All Above" },
       { "<leader>jb", ":MoltenRunBelow<cr>", desc = "Run All Below" },
-      { "<leader>jd", ":MoltenDelete<cr>", desc = "Delete Output" },
-      { "<leader>jD", ":silent! %MoltenDelete<cr>", desc = "Delete All Outputs" },
+      { "<leader>md", ":MoltenDelete<cr>", desc = "Delete Output" },
+      { "<leader>mD", ":silent! %MoltenDelete<cr>", desc = "Delete All Outputs" },
       { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "Open Output Window" },
     },
   },
@@ -148,6 +148,7 @@ return {
 
       -- ⌨️ RACCOURCIS
       vim.keymap.set("n", "<leader>jt", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
+      vim.keymap.set("n", "<leader>jd", function() jd.toggle() end, { desc = "Toggle Décorations Cellules" })
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
 
       -- ⚡ AUTOMATISME DÉCORATIONS
@@ -159,7 +160,7 @@ return {
       })
 
       vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
-        pattern = "*.ipynb",
+        pattern = { "*.ipynb", "*.md", "*.txt" },
         callback = function(ev)
           vim.defer_fn(function()
             if vim.api.nvim_buf_is_valid(ev.buf) then
@@ -197,7 +198,8 @@ return {
       })
 
       vim.opt.autoread = true
-      vim.api.nvim_create_user_command("JupyterDecorate", function() jd.decorate() end, {})
+      vim.api.nvim_create_user_command("JDecorateToggle", function() jd.toggle() end, {})
+      vim.api.nvim_create_user_command("JDecorate", function() jd.decorate() end, {})
     end,
   },
 
