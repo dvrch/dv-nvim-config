@@ -21,14 +21,17 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
-      -- 🎨 PALETTE ELITE (Couleurs Vibrantes)
-      vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#ffcc00", bold = true }) -- Jaune Gold
-      vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#ff6600", bold = true }) -- Orange Pur
-      vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#555555", italic = true }) -- Gris discret
+      -- 🎨 SYSTÈME DE COULEURS PERSISTANT (V3.3)
+      local function set_colors()
+        vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#FFD700", bold = true, default = true })
+        vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#FF8C00", bold = true, default = true })
+        vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#5c6370", italic = true, default = true })
+      end
+      set_colors()
 
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
-      -- 🎨 DÉCORATEUR ELITE V3.2 (Look Premium & Effectivité Maximale)
+      -- 🎨 DÉCORATEUR "ULTRA-SYNC" (MD & IPYNB IDENTIQUES)
       function do_decorate(buf)
         buf = (buf == 0 or buf == nil) and vim.api.nvim_get_current_buf() or buf
         if not vim.api.nvim_buf_is_valid(buf) then return end
@@ -38,6 +41,7 @@ return {
         if not is_jupyter then return end
 
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
+        set_colors() -- Force refresh colors
         
         vim.opt_local.conceallevel = 2
         vim.opt_local.concealcursor = "nvic"
@@ -47,13 +51,12 @@ return {
         local in_code = false
 
         for i, line in ipairs(lines) do
-          -- Masquage Overlay (Adieu "Ghost lines")
           local function hide_line()
             if i == cursor_line then return end 
             local mask = string.rep(" ", vim.fn.strdisplaywidth(line))
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_text = { { mask, "Conceal" } },
-              virt_text_pos = "overlay", priority = 5000,
+              virt_text_pos = "overlay", priority = 9000,
             })
           end
 
@@ -61,24 +64,24 @@ return {
           if line:match("^#+ ") or line:match("<!-- #region") or line:match("#region") then
             hide_line()
             local title = line:gsub("^#+%s*", ""):gsub("<!%-%-%s*", ""):gsub("%s*%-%->", "")
-            title = title ~= "" and title:upper() or "MARKDOWN"
+            title = title ~= "" and title:upper() or "SECTION"
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { 
                 { "📝 ╔══ # " .. title .. " ", "JupyterMdHeader" },
-                { string.rep("═", math.max(60 - #title, 5)), "JupyterMdHeader" },
+                { string.rep("═", math.max(65 - #title, 5)), "JupyterMdHeader" },
                 { "╗", "JupyterMdHeader" }
               } },
-              virt_lines_above = true, priority = 4900 })
+              virt_lines_above = true, priority = 8900 })
           elseif line:match("<!-- #endregion") or line:match("#endregion") then
             hide_line()
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { 
                 { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
                 { " FIN SECTION ", "JupyterFooter" }, 
-                { string.rep("═", 49), "JupyterFooter" },
+                { string.rep("═", 54), "JupyterFooter" },
                 { "╝", "JupyterFooter" }
               } },
-              virt_lines_above = false, priority = 4900 })
+              virt_lines_above = false, priority = 8900 })
           
           -- 2. BLOCS DE CODE (Standard / Magics / VSCode)
           elseif line:match("^%s*```") or line:match("^%%%%%w+") then
@@ -93,28 +96,28 @@ return {
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { 
                   { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
-                  { string.rep("═", 50), "JupyterCodeHeader" },
+                  { string.rep("═", 55), "JupyterCodeHeader" },
                   { "╗", "JupyterCodeHeader" }
                 } },
-                virt_lines_above = true, priority = 4900 })
+                virt_lines_above = true, priority = 8900 })
               in_code = true
             else
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { 
                   { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
                   { " FIN CELLULE CODE ", "JupyterFooter" },
-                  { string.rep("═", 45), "JupyterFooter" },
+                  { string.rep("═", 50), "JupyterFooter" },
                   { "╝", "JupyterFooter" }
                 } },
-                virt_lines_above = false, priority = 4900 })
+                virt_lines_above = false, priority = 8900 })
               in_code = false
             end
           end
         end
       end
 
-      -- ⚡ TRIGGERS (Auto-Refresh)
-      vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "BufWritePost", "CursorMoved", "ModeChanged", "TextChanged" }, {
+      -- ⚡ TRIGGERS
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "BufWritePost", "CursorMoved", "TextChanged" }, {
         pattern = "*",
         callback = function(ev)
           local name = vim.api.nvim_buf_get_name(ev.buf)
@@ -124,7 +127,7 @@ return {
         end,
       })
 
-      -- 🔄 COMMANDES & SYNC
+      -- 🔄 COMMANDES
       vim.api.nvim_create_user_command("JDecor", function() do_decorate() end, {})
       vim.api.nvim_create_user_command("JSync", function()
         local path = vim.api.nvim_buf_get_name(0)
