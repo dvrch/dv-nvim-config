@@ -7,8 +7,11 @@ local function setup_hls()
   vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#ffcc00", bold = true, default = true })
   vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#ff6600", bold = true, default = true })
   vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#555555", italic = true, default = true })
-  -- Hl group pour un masquage opaque (remplace le texte sans cache-cache)
-  vim.api.nvim_set_hl(0, "JupyterHidden", { fg = "bg", bg = "bg", default = true })
+  
+  -- Récupération dynamique de la couleur de fond (pour rendre le curseur aveugle au texte caché)
+  local normal_hl = vim.api.nvim_get_hl(0, { name = "Normal" })
+  local bg_color = normal_hl.bg or "NONE"
+  vim.api.nvim_set_hl(0, "JupyterHidden", { fg = bg_color, bg = bg_color, default = true })
 end
 
 --- @param buf number | nil
