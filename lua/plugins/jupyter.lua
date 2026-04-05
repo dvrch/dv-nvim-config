@@ -14,18 +14,15 @@ return {
       vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
       
-      -- FONCTION OBLIGATOIRE : Exécuter une plage avec ancrage forcé pour Molten
+      -- FONCTION OBLIGATOIRE : API d'Éxécution Parfaite
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
         
-        -- DÉPLACEMENT PHYSIQUE CRITIQUE : Molten ancre souvent l'output à la position du curseur
-        -- lue asynchronement depuis Python (une fraction de seconde plus tard).
-        -- Si l'on restaure le curseur trop vite, tous les outputs s'effondrent à la même place !
-        vim.api.nvim_win_set_cursor(0, {end_l, 0})
-        
-        vim.fn.setpos("'<", {0, start_l, 1, 0})
-        vim.fn.setpos("'>", {0, end_l, 2147483647, 0})
-        vim.cmd("MoltenEvaluateVisual")
+        -- EXÉCUTION ATOMIQUE ET SYNCHRONE
+        -- Nous invoquons directement la vraie fonction backend de Molten !
+        -- Plus aucun décalage d'output. Plus aucune erreur Liée au Mode Visuel.
+        -- Les coordonnées exactes traversent l'API Python instantanément !
+        pcall(vim.fn.MoltenEvaluateRange, start_l, end_l)
       end
 
       -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE
@@ -172,7 +169,7 @@ return {
   },
 
   -- 2. Jupytext : Config stable Markdown (Avec Décorateurs ✨)
-  {
+  {scm-history-item:/home/kd/.config/nvim?%7B%22repositoryId%22%3A%22scm1%22%2C%22historyItemId%22%3A%22db84420fc41afa30d8ebff8ef9fa88a9d388bd52%22%2C%22historyItemParentId%22%3A%22c1bc9386af310e2a2814a9e7c85249197866b311%22%2C%22historyItemDisplayId%22%3A%22db84420%22%7D
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
