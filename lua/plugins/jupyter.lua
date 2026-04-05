@@ -154,8 +154,6 @@ return {
 
       -- 🎨 DÉCORATIONS "GHOST" — 2 BALISES PAR CELLULE, TOUJOURS VISIBLES
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
-      -- Groupe invisible pour cacher les lignes techniques Jupytext
-      vim.api.nvim_set_hl(0, "JupytextHidden", { fg = "bg", bg = "bg", nocombine = true })
 
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
@@ -163,35 +161,33 @@ return {
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
 
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        local fmt = vim.g.jupytext_user_fmt or "markdown"
-        local is_py = fmt == "py:percent"
+
+        -- ✅ DÉTECTION FIABLE : on scan le contenu réel, pas une variable
+        local is_py = false
+        for _, l in ipairs(lines) do
+          if l:match("^# %%%%") or l:match("^# %% ") then
+            is_py = true; break
+          end
+        end
 
         for i, line in ipairs(lines) do
           if not is_py then
             -- ═══════ VUE MARKDOWN ═══════
-            -- #region → CACHER + balise DÉBUT MD
             if line:find("#region", 1, true) then
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                line_hl_group = "JupytextHidden", priority = 2100 })
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
                 virt_lines_above = true, priority = 2000 })
 
-            -- #endregion → CACHER + balise FIN MD
             elseif line:find("#endregion", 1, true) then
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                line_hl_group = "JupytextHidden", priority = 2100 })
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
                 virt_lines_above = false, priority = 2000 })
 
-            -- ```python → balise DÉBUT CODE
             elseif line:find("```python", 1, true) then
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
                 virt_lines_above = true, priority = 2000 })
 
-            -- ``` seul → balise FIN CODE
             elseif line == "```" then
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
@@ -200,7 +196,6 @@ return {
 
           else
             -- ═══════ VUE PYTHON ═══════
-            -- Chaque # %% [markdown] → FIN de la précédente + DÉBUT MD
             if line:find("# %% [markdown]", 1, true) then
               if i > 1 then
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
@@ -211,7 +206,6 @@ return {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
                 virt_lines_above = false, priority = 1999 })
 
-            -- # %% → FIN de la précédente + DÉBUT CODE
             elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
               if i > 1 then
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
@@ -246,48 +240,6 @@ return {
           end, 50)
         end,
       })
-
-      -- 🛡️ GARDE ANTI-CORRUPTION : Vérifie le JSON avant TOUTE écriture
-      vim.api.nvim_create_autocmd("BufWritePre", {
-        pattern = "*.ipynb",
-        callback = function()
-          local path = vim.fn.expand("%:p")
-          -- Lire la 1ère ligne du fichier ACTUEL sur disque
-          local first_line = vim.fn.readfile(path, "", 1)
-          if first_line and first_line[1] and first_line[1]:sub(1, 3) == "---" then
-            -- Le fichier sur disque est déjà corrompu (front matter YAML !)
-            -- On ne peut pas faire grand chose ici, mais on signale
-            vim.notify("⚠️ CORRUPTION DÉTECTÉE dans " .. vim.fn.fnamemodify(path, ":t") ..
-              " — Utilisez :JupyterRestore pour réparer", vim.log.levels.ERROR)
-          end
-        end,
-      })
-
-      -- 💾 BACKUP JSON : Sauvegarder le dernier bon JSON
-      local backup_path = vim.fn.expand("~/.local/share/nvim/agent_brain_backup.json")
-      vim.api.nvim_create_autocmd("BufReadPost", {
-        pattern = "*/agent_brain.ipynb",
-        callback = function()
-          local path = vim.fn.expand("%:p")
-          local content = table.concat(vim.fn.readfile(path), "\n")
-          if content:sub(1,1) == "{" then
-            vim.fn.writefile(vim.fn.readfile(path), backup_path)
-          end
-        end,
-      })
-
-      -- 🔧 COMMANDE DE RESTAURATION D'URGENCE
-      vim.api.nvim_create_user_command("JupyterRestore", function()
-        local path = vim.fn.expand("%:p")
-        if vim.fn.filereadable(backup_path) == 1 then
-          vim.fn.system("cp " .. vim.fn.shellescape(backup_path) .. " " .. vim.fn.shellescape(path))
-          cleanup_sidecars()
-          vim.cmd("e!")
-          vim.notify("✅ JSON restauré depuis le backup !", vim.log.levels.INFO)
-        else
-          vim.notify("❌ Pas de backup disponible", vim.log.levels.ERROR)
-        end
-      end, {})
 
       -- Nettoyage auto après sauvegarde
       vim.api.nvim_create_autocmd("BufWritePost", {
