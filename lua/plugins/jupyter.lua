@@ -17,24 +17,16 @@ return {
       -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé NATIVEMENT
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
-        local pos = vim.api.nvim_win_get_cursor(0)
         
-        -- Création d'une simulation parfaite d'un utilisateur sélectionnant le texte au pixel près
-        -- En utilisant feedkeys "x" (synchrone), Neovim traite cela instantanément comme natif.
-        -- Le mode Visuel est automatiquement refermé par l'entrée de commande (:) !
-        vim.api.nvim_win_set_cursor(0, {start_l, 0})
+        -- Définition asbolue et atomique des marques visuelles '< et '>
+        -- Cela contourne totalement le besoin de facker une sélection visuelle avec feedkeys
+        -- et élimine le risque d'erreur E481 (Les plages ne sont pas autorisées) 
+        -- ainsi que E21 (modification buffer invalide au sein d'une popup Molten UI)
+        vim.fn.setpos("'<", {0, start_l, 1, 0})
+        vim.fn.setpos("'>", {0, end_l, 2147483647, 0})
         
-        local lines_down = end_l - start_l
-        local keys = "V"
-        if lines_down > 0 then
-            keys = keys .. lines_down .. "j"
-        end
-        keys = keys .. ":MoltenEvaluateVisual<CR>"
-        
-        local seq = vim.api.nvim_replace_termcodes(keys, true, false, true)
-        vim.api.nvim_feedkeys(seq, "x", false)
-        
-        pcall(vim.api.nvim_win_set_cursor, 0, pos)
+        -- Lancement direct (Molten lira les marques que nous venons d'assigner au pixel près)
+        vim.cmd("MoltenEvaluateVisual")
       end
 
       -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE (Parfaite synchro avec les décorateurs)
