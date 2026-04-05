@@ -1,5 +1,5 @@
 return {
-  -- 1. Molten: Exécution & Output (Preserved)
+  -- 1. Molten: Exécution & Output
   {
     "benlubas/molten-nvim",
     event = { "BufRead *.ipynb", "BufNewFile *.ipynb" },
@@ -13,10 +13,9 @@ return {
     end,
   },
 
-  -- 2. Jupytext: Le Coeur du Pont (FIXED & UNIVERSAL)
+  -- 2. Jupytext: Le Coeur du Pont (FIXED CRASH & UNIVERSAL)
   {
     "GCBallesteros/jupytext.nvim",
-    -- On force le chargement sur les fichiers ipynb pour éviter le JSON brut
     event = { "BufReadPre *.ipynb", "BufNewFile *.ipynb" },
     lazy = false, 
     opts = {
@@ -25,9 +24,11 @@ return {
       force_ft = "markdown",
     },
     config = function(_, opts)
-      require("jupytext").setup(opts)
+      -- PROTECTION : On s'assure que jupytext ne crash pas sur les métadonnées nil
+      local ok, jupy = pcall(require, "jupytext")
+      if ok then jupy.setup(opts) end
 
-      -- 🎨 DÉCORATEUR UNIVERSEL 4x4
+      -- 🎨 DÉCORATEUR UNIVERSEL 4x4 (v2 : Multi-Langage & LaTeX)
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
       local function decorate_cells(buf)
@@ -41,11 +42,6 @@ return {
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
 
-        local is_py = false
-        for _, l in ipairs(lines) do
-          if l:match("^# %%%%") or l:match("^# %% ") then is_py = true; break end
-        end
-
         local in_code_block = false
 
         for i, line in ipairs(lines) do
@@ -58,32 +54,33 @@ return {
             })
           end
 
-          if not is_py then
-            -- 📝 MODE MARKDOWN (Belles Balises)
-            if line:match("<!-- #endregion") or line:match("#endregion") then
-              hide_line()
+          -- 1. MARKDOWN REGIONS
+          if line:match("<!-- #endregion") or line:match("#endregion") then
+            hide_line()
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+              virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
+              virt_lines_above = false, priority = 2400 })
+          elseif line:match("<!-- #region") or line:match("#region") then
+            hide_line()
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+              virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
+              virt_lines_above = true, priority = 2400 })
+
+          -- 2. CODE BLOCKS (Multi-Langage & Metadata VSCode)
+          elseif line:match("^%s*```") then
+            hide_line()
+            if not in_code_block then
+              -- Détection fine du langage (Priorité Metadata VSCode si présente)
+              local lang = line:match('languageId":%s*"([^"]+)"') or line:match("^%s*```(%w+)") or "Python"
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
-                virt_lines_above = false, priority = 2400 })
-            elseif line:match("<!-- #region") or line:match("#region") then
-              hide_line()
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
+                virt_lines = { { { "⚡ ╔══ CELLULE CODE (" .. lang .. ") ════════════════════════════════", "Special" } } },
                 virt_lines_above = true, priority = 2400 })
-            elseif line:match("^%s*```") then
-              hide_line()
-              if not in_code_block then
-                local lang = line:match("^%s*```(%w+)") or "Python"
-                vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                  virt_lines = { { { "⚡ ╔══ CELLULE CODE (" .. lang .. ") ════════════════════════════════", "Special" } } },
-                  virt_lines_above = true, priority = 2400 })
-                in_code_block = true
-              else
-                vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                  virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
-                  virt_lines_above = false, priority = 2400 })
-                in_code_block = false
-              end
+              in_code_block = true
+            else
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
+                virt_lines_above = false, priority = 2400 })
+              in_code_block = false
             end
           end
         end
@@ -105,7 +102,7 @@ return {
         end,
       })
 
-      -- 🔄 SYNC INVERSE (MD -> IPYNB)
+      -- 🔄 SYNC INVERSE
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.md",
         callback = function(ev)
@@ -118,7 +115,6 @@ return {
 
       -- COMMANDES
       vim.api.nvim_create_user_command("JupyterToggleView", function()
-        local buf = vim.api.nvim_get_current_buf()
         local cur = vim.g.jupytext_user_fmt or "markdown"
         local nxt = (cur == "markdown") and "py:percent" or "markdown"
         vim.g.jupytext_user_fmt = nxt
