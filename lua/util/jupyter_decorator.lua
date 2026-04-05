@@ -113,19 +113,18 @@ function M.decorate(buf)
       -- BLOCS DE CODE MD
       -- On NE MATCHE PLUS les '%%w+' ici car cela casse avec le code LaTeX (ex: %%hhjhj).
       elseif line:match("^%s*```") then
-        -- Pas de hide_line() ici pour les blocs ``` afin de les garder visibles/éditables
         if not in_code then
           local lang = line:match('languageId": "([^"]+)"') 
                        or line:match("^%s*```(%w+)") 
                        or "Python"
           lang = lang:gsub("^%w", string.upper)
           
-          -- ASTUCE ANTI-COLLAPSE : On ajoute un espace "right_align" vide. 
-          -- Cela force Neovim à ne pas masquer la ligne si un plugin externe (render-markdown)
-          -- utilise le conceallevel agressif.
-          vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-            virt_text = { { " ", "Normal" } },
-            virt_text_pos = "right_align",
+          -- ASTUCE ANTI-RENDER-MARKDOWN : 
+          -- Les plugins Markdown cachent et réduisent (collapse) la ligne ```python.
+          -- Pour éviter que nos bordures ne soient détruites avec la ligne, on les accroche
+          -- à la PREMIÈRE ligne de code (idx + 1) !
+          local safe_idx = math.min(#lines - 1, idx + 1)
+          vim.api.nvim_buf_set_extmark(buf, M.ns_cell, safe_idx, 0, {
             virt_lines = { { 
               { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
               { string.rep("═", 50), "JupyterCodeHeader" },
@@ -134,9 +133,9 @@ function M.decorate(buf)
             virt_lines_above = true, priority = 4900 })
           in_code = true
         else
-          vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-            virt_text = { { " ", "Normal" } },
-            virt_text_pos = "right_align",
+          -- Pour la fin du block ```, on l'accroche à la DERNIÈRE ligne de code (idx - 1)
+          local safe_idx = math.max(0, idx - 1)
+          vim.api.nvim_buf_set_extmark(buf, M.ns_cell, safe_idx, 0, {
             virt_lines = { { 
               { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
               { " FIN CELLULE CODE ", "JupyterFooter" },
