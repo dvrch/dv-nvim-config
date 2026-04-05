@@ -2,11 +2,13 @@ local M = {}
 
 M.ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
--- 🎨 CONFIGURATION DES COULEURS (Aesthetic VSCode)
+-- 🎨 CONFIGURATION DES COULEURS ELITE
 local function setup_hls()
-  vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#FFD700", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#FF8C00", bold = true, default = true })
-  vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#646464", italic = true, default = true })
+  vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#ffcc00", bold = true, default = true })
+  vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#ff6600", bold = true, default = true })
+  vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#555555", italic = true, default = true })
+  -- Hl group pour un masquage opaque (remplace le texte sans cache-cache)
+  vim.api.nvim_set_hl(0, "JupyterHidden", { fg = "bg", bg = "bg", default = true })
 end
 
 --- @param buf number | nil
@@ -14,7 +16,6 @@ end
 function M.is_enabled(buf)
   buf = buf or vim.api.nvim_get_current_buf()
   local val = vim.b[buf].jupyter_decorate_enabled
-  -- Par défaut, activé pour ipynb, désactivé ailleurs
   if val == nil then
     local name = vim.api.nvim_buf_get_name(buf)
     return name:match("%.ipynb$") ~= nil
@@ -43,16 +44,13 @@ function M.decorate(buf)
   if not vim.api.nvim_buf_is_valid(buf) then return end
   
   setup_hls()
-  -- On ne nettoie que si nécessaire ou on gère par extmark ID pour éviter le flickering
   vim.api.nvim_buf_clear_namespace(buf, M.ns_cell, 0, -1)
 
   if not M.is_enabled(buf) then return end
 
-  -- Configurer les fenêtres pour que le conceal ne saute jamais sous le curseur
-  for _, win in ipairs(vim.fn.win_findbuf(buf)) do
-    vim.api.nvim_win_set_option(win, "conceallevel", 2)
-    vim.api.nvim_win_set_option(win, "concealcursor", "nvic")
-  end
+  -- On force les options conceal locales au cas où de vieux blocs markdown interfèrent
+  vim.opt_local.conceallevel = 2
+  vim.opt_local.concealcursor = "nvic"
 
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
   if #lines == 0 then return end
@@ -66,74 +64,121 @@ function M.decorate(buf)
     end
   end
 
-  -- Masquage VRAI de la ligne (utilisation native de conceal au lieu de virt_text)
-  local function mask_line(idx, line)
-    if #line == 0 then return end
+  local in_code = false
+
+  -- Masquage OPAQUE (Adieu définitif Ghost lines & Cache-cache)
+  local function hide_line(idx, line)
+    local width = vim.fn.strdisplaywidth(line)
+    if width == 0 then width = 1 end
+    local mask = string.rep(" ", width + 10) -- On masque large
     vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-      end_col = #line,
-      conceal = "",
+      virt_text = { { mask, "JupyterHidden" } },
+      virt_text_pos = "overlay", 
       priority = 2100,
+      -- Ne pas cacher le virt_text même si cursor est dessus
+      virt_text_hide = false,
     })
   end
 
   for i, line in ipairs(lines) do
     local idx = i - 1
+
     if not is_py then
       -- ═══════ VUE MARKDOWN ═══════
-      if line:find("#region", 1, true) or line:find("<!-- #region", 1, true) then
-        mask_line(idx, line)
+      if line:match("^#+ ") or line:match("<!-- #region") or line:match("#region") then
+        hide_line(idx, line)
+        local title = line:gsub("^#+%s*", ""):gsub("<!%-%-%s*", ""):gsub("%s*%-%->", "")
+        title = title ~= "" and title:upper() or "MARKDOWN"
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-          virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "JupyterMdHeader" } } },
+          virt_lines = { { 
+            { "📝 ╔══ # " .. title .. " ", "JupyterMdHeader" },
+            { string.rep("═", math.max(60 - #title, 5)), "JupyterMdHeader" },
+            { "╗", "JupyterMdHeader" }
+          } },
           virt_lines_above = true, priority = 2000 })
 
-      elseif line:find("#endregion", 1, true) or line:find("<!-- #endregion", 1, true) then
-        mask_line(idx, line)
+      elseif line:match("<!-- #endregion") or line:match("#endregion") then
+        hide_line(idx, line)
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-          virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "JupyterFooter" } } },
+          virt_lines = { { 
+            { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+            { " FIN SECTION ", "JupyterFooter" }, 
+            { string.rep("═", 49), "JupyterFooter" },
+            { "╝", "JupyterFooter" }
+          } },
           virt_lines_above = false, priority = 2000 })
-
-      elseif line:find("```python", 1, true) then
-        mask_line(idx, line)
-        vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-          virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "JupyterCodeHeader" } } },
-          virt_lines_above = true, priority = 2000 })
-
-      elseif line == "```" or line:find("^%s*```%s*$") then
-        local found_start = false
-        for j = i - 1, 1, -1 do
-          if lines[j]:find("```python", 1, true) then found_start = true break end
-          if lines[j]:find("```", 1, true) then break end
-        end
-        if found_start then
-          mask_line(idx, line)
+      
+      -- BLOCS DE CODE MD
+      elseif line:match("^%s*```") or line:match("^%%%%%w+") then
+        hide_line(idx, line)
+        if not in_code then
+          local lang = line:match('languageId": "([^"]+)"') 
+                       or line:match("^%s*```(%w+)") 
+                       or line:match("^%%%%(%w+)") 
+                       or "Python"
+          lang = lang:gsub("^%w", string.upper)
+          
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-            virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "JupyterFooter" } } },
+            virt_lines = { { 
+              { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
+              { string.rep("═", 50), "JupyterCodeHeader" },
+              { "╗", "JupyterCodeHeader" }
+            } },
+            virt_lines_above = true, priority = 2000 })
+          in_code = true
+        else
+          vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
+            virt_lines = { { 
+              { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+              { " FIN CELLULE CODE ", "JupyterFooter" },
+              { string.rep("═", 45), "JupyterFooter" },
+              { "╝", "JupyterFooter" }
+            } },
             virt_lines_above = false, priority = 2000 })
+          in_code = false
         end
       end
 
     else
       -- ═══════ VUE PYTHON ═══════
       if line:find("# %% [markdown]", 1, true) then
-        mask_line(idx, line)
+        hide_line(idx, line)
         if i > 1 then
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-            virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "JupyterFooter" } } },
+            virt_lines = { { 
+              { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+              { " FIN CELLULE ", "JupyterFooter" },
+              { string.rep("═", 50), "JupyterFooter" },
+              { "╝", "JupyterFooter" }
+            } },
             virt_lines_above = true, priority = 2050 })
         end
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-          virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "JupyterMdHeader" } } },
+          virt_lines = { { 
+            { "📝 ╔══ CELLULE MARKDOWN ", "JupyterMdHeader" },
+            { string.rep("═", 43), "JupyterMdHeader" },
+            { "╗", "JupyterMdHeader" }
+          } },
           virt_lines_above = false, priority = 2000 })
 
       elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
-        mask_line(idx, line)
+        hide_line(idx, line)
         if i > 1 then
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-            virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "JupyterFooter" } } },
+            virt_lines = { { 
+              { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+              { " FIN CELLULE ", "JupyterFooter" },
+              { string.rep("═", 50), "JupyterFooter" },
+              { "╝", "JupyterFooter" }
+            } },
             virt_lines_above = true, priority = 2050 })
         end
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
-          virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "JupyterCodeHeader" } } },
+          virt_lines = { { 
+            { "⚡ ╔══ CELLULE CODE ", "JupyterCodeHeader" },
+            { string.rep("═", 47), "JupyterCodeHeader" },
+            { "╗", "JupyterCodeHeader" }
+          } },
           virt_lines_above = false, priority = 2000 })
       end
     end
