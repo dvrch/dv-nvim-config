@@ -88,14 +88,14 @@ function M.decorate(buf)
 
     if not is_py then
       -- ═══════ VUE MARKDOWN ═══════
-      if line:match("^#+ ") or line:match("<!-- #region") or line:match("#region") then
+      if line:match("<!-- #region") or line:match("#region") then
         hide_line(idx, line)
-        local title = line:gsub("^#+%s*", ""):gsub("<!%-%-%s*", ""):gsub("%s*%-%->", "")
+        local title = line:gsub("<!%-%-%s*", ""):gsub("%s*%-%->", ""):gsub("#region%s*", "")
         title = title ~= "" and title:upper() or "MARKDOWN"
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
           virt_lines = { { 
-            { "📝 ╔══ # " .. title .. " ", "JupyterMdHeader" },
-            { string.rep("═", math.max(60 - #title, 5)), "JupyterMdHeader" },
+            { "📝 ╔══ CELLULE " .. title .. " ", "JupyterMdHeader" },
+            { string.rep("═", math.max(60 - #title - 8, 5)), "JupyterMdHeader" },
             { "╗", "JupyterMdHeader" }
           } },
           virt_lines_above = true, priority = 2000 })
