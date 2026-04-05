@@ -105,7 +105,12 @@ return {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
-    opts = {}, -- ⚠️ PAS de style/output_extension ici → ça corrompt le .ipynb !
+    -- opts passés à require("jupytext").setup() - C est ICI que le format est décidé
+    opts = {
+      style = "markdown",        -- Format d affichage par défaut : MD
+      output_extension = "md",   -- Extension du fichier temporaire : .md
+      force_ft = "markdown",     -- Filetype Neovim : markdown
+    },
     config = function(_, opts)
       require("jupytext").setup(opts)
 
@@ -117,14 +122,29 @@ return {
         os.remove(base .. ".py")
       end
 
-      -- 🔄 TOGGLE ATOMIQUE (MD <-> PY)
+      -- Le choix de format est global (persiste entre rechargements)
+      -- Par défaut : markdown. Le toggle change cela.
+      if vim.g.jupytext_user_fmt == nil then
+        vim.g.jupytext_user_fmt = "markdown"
+      end
+
+      -- 🔄 TOGGLE ATOMIQUE : change le setup() Jupytext dynamiquement
       vim.api.nvim_create_user_command("JupyterToggleView", function()
         if vim.bo.modified then vim.cmd("w") end
-        local current = vim.b.jupytext_fmt or "markdown"
+        cleanup_sidecars()  -- Effacer l'ancien sidecar pour forcer reconversion
+
+        local current = vim.g.jupytext_user_fmt or "markdown"
         local target = (current == "markdown") and "py:percent" or "markdown"
-        cleanup_sidecars()
-        vim.notify("🚀 Vue : " .. (target == "markdown" and "MARKDOWN" or "PYTHON"), vim.log.levels.WARN)
-        vim.b.jupytext_fmt = target
+        vim.g.jupytext_user_fmt = target
+
+        -- Changer le setup RÉEL de Jupytext (c est lui le vrai patron du format)
+        if target == "markdown" then
+          require("jupytext").setup({ style = "markdown", output_extension = "md", force_ft = "markdown" })
+        else
+          require("jupytext").setup({ style = "hydrogen", output_extension = "py", force_ft = "python" })
+        end
+
+        vim.notify("🚀 Vue : " .. (target == "markdown" and "MARKDOWN ✨" or "PYTHON 🐍"), vim.log.levels.WARN)
         vim.cmd("e!")
       end, {})
 
@@ -216,10 +236,9 @@ return {
       vim.api.nvim_create_autocmd("BufReadPre", {
         pattern = "*.ipynb",
         callback = function(ev)
-          cleanup_sidecars()
-          if not vim.b[ev.buf].jupytext_fmt then
-            vim.b[ev.buf].jupytext_fmt = "markdown"
-          end
+          -- TOUJOURS appliquer le format global (défaut: markdown)
+          -- C est ce qui garanti le retour en MD après e! ou rechargement
+          vim.b[ev.buf].jupytext_fmt = vim.g.jupytext_user_fmt or "markdown"
         end,
       })
 
