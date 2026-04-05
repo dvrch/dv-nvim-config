@@ -15,7 +15,7 @@ return {
   -- 2. Jupytext: Le Pont Invisible (MD First)
   {
     "GCBallesteros/jupytext.nvim",
-    event = { "BufReadPost *.ipynb", "BufReadPost *.md" },
+    event = { "BufReadPre *.ipynb", "BufNewFile *.ipynb", "BufRead *.md" },
     lazy = false, 
     opts = { style = "markdown", output_extension = "md", force_ft = "markdown" },
     config = function(_, opts)
