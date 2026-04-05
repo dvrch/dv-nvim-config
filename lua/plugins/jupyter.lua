@@ -159,14 +159,12 @@ return {
         end,
       })
 
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave" }, {
         pattern = { "*.ipynb", "*.md", "*.txt" },
         callback = function(ev)
-          vim.defer_fn(function()
-            if vim.api.nvim_buf_is_valid(ev.buf) then
-              jd.decorate(ev.buf)
-            end
-          end, 50)
+          if vim.api.nvim_buf_is_valid(ev.buf) then
+            jd.decorate(ev.buf)
+          end
         end,
       })
 
