@@ -152,81 +152,75 @@ return {
       vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
 
-      -- 🎨 DÉCORATIONS "GHOST" PERMANENTES ET UNIVERSELLES
+      -- 🎨 DÉCORATIONS "GHOST" — 2 BALISES PAR CELLULE, TOUJOURS VISIBLES
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
+      -- Groupe invisible pour cacher les lignes techniques Jupytext
+      vim.api.nvim_set_hl(0, "JupytextHidden", { fg = "bg", bg = "bg", nocombine = true })
+
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
         if not vim.api.nvim_buf_is_valid(buf) then return end
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
-        vim.opt_local.conceallevel = 2
 
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        local fmt = vim.b[buf].jupytext_fmt or "markdown"
+        local fmt = vim.g.jupytext_user_fmt or "markdown"
         local is_py = fmt == "py:percent"
 
         for i, line in ipairs(lines) do
-
-          -- 🏷️ BALISES VISIBLES NON-ÉDITABLES (Virt Lines permanentes)
-
-          -- Marqueur de REGION Jupytext (début de bloc Markdown)
-          if line:find("#region", 1, true) or line:find("<!-- #region", 1, true) then
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { { "┄┄┄ ◈ DÉBUT RÉGION MARKDOWN ◈ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄", "DiagnosticHint" } } },
-              virt_lines_above = true, priority = 2100,
-            })
-          -- Marqueur de FIN REGION Jupytext
-          elseif line:find("#endregion", 1, true) or line:find("<!-- #endregion", 1, true) then
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { { "┄┄┄ ◇ FIN RÉGION MARKDOWN ◇ ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄", "DiagnosticHint" } } },
-              virt_lines_above = false, priority = 2100,
-            })
-          end
-
           if not is_py then
-            -- === VUE MARKDOWN : ```python → DÉBUT, ``` seul → FIN ===
-            if line:find("```python", 1, true) then
+            -- ═══════ VUE MARKDOWN ═══════
+            -- #region → CACHER + balise DÉBUT MD
+            if line:find("#region", 1, true) then
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
-                virt_lines_above = true,
-                priority = 2000,
-              })
-            elseif line:find("```", 1, true) and not line:find("python", 1, true) then
+                line_hl_group = "JupytextHidden", priority = 2100 })
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "🏁 [ FIN CELLULE CODE ] ─────────────────────────────────────────", "Comment" } } },
-                virt_lines_above = false,
-                priority = 2000,
-              })
+                virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
+                virt_lines_above = true, priority = 2000 })
+
+            -- #endregion → CACHER + balise FIN MD
+            elseif line:find("#endregion", 1, true) then
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                line_hl_group = "JupytextHidden", priority = 2100 })
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
+                virt_lines_above = false, priority = 2000 })
+
+            -- ```python → balise DÉBUT CODE
+            elseif line:find("```python", 1, true) then
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
+                virt_lines_above = true, priority = 2000 })
+
+            -- ``` seul → balise FIN CODE
+            elseif line == "```" then
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
+                virt_lines_above = false, priority = 2000 })
             end
+
           else
-            -- === VUE PYTHON : # %% → DÉBUT CELLULE + FIN de la précédente ===
+            -- ═══════ VUE PYTHON ═══════
+            -- Chaque # %% [markdown] → FIN de la précédente + DÉBUT MD
             if line:find("# %% [markdown]", 1, true) then
-              -- Fin de la cellule précédente (au-dessus)
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "🏁 [ FIN CELLULE ] ──────────────────────────────────────────────", "Comment" } } },
-                virt_lines_above = true,
-                priority = 2000,
-              })
-              -- Début de cette cellule Markdown (en-dessous)
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "📝 [ CELLULE MARKDOWN ] ─────────────────────────────────────────", "String" } } },
-                virt_lines_above = false,
-                priority = 1999,
-              })
-            elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
-              -- Fin de la cellule précédente (au-dessus)
               if i > 1 then
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                  virt_lines = { { { "🏁 [ FIN CELLULE ] ──────────────────────────────────────────────", "Comment" } } },
-                  virt_lines_above = true,
-                  priority = 2000,
-                })
+                  virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
+                  virt_lines_above = true, priority = 2000 })
               end
-              -- Début de cette cellule Code (en-dessous)
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "⚡ [ CELLULE CODE ] ──────────────────────────────────────────────", "Special" } } },
-                virt_lines_above = false,
-                priority = 1999,
-              })
+                virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
+                virt_lines_above = false, priority = 1999 })
+
+            -- # %% → FIN de la précédente + DÉBUT CODE
+            elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
+              if i > 1 then
+                vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                  virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
+                  virt_lines_above = true, priority = 2000 })
+              end
+              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+                virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
+                virt_lines_above = false, priority = 1999 })
             end
           end
         end
