@@ -102,13 +102,20 @@ return {
       vim.api.nvim_create_user_command("JSync", function()
         local path = vim.api.nvim_buf_get_name(0)
         if path:match("%.md$") then
-          vim.fn.system({ "jupytext", "--sync", path })
-          vim.notify("🔄 Synchronisation Ok.", vim.log.levels.INFO)
+          vim.fn.system({ "jupytext", "--update", "--to", "ipynb", path })
+          vim.notify("🔄 IPYNB Synchronisé.", vim.log.levels.INFO)
         end
       end, {})
 
+      -- 🚀 SYNCHRONISATION AUTOMATIQUE (MD -> IPYNB)
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.md",
+        callback = function() vim.cmd("JSync") end,
+      })
+
       -- Raccourci expert
       vim.keymap.set("n", "<leader>jd", "<cmd>JDecor<cr>", { desc = "Rafraîchir les Cadres" })
+      vim.keymap.set("n", "<leader>js", "<cmd>JSync<cr>", { desc = "Sync Manuelle IPYNB" })
     end,
   },
 }
