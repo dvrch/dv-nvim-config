@@ -1,150 +1,214 @@
 return {
-  -- 1. Molten: Exécution & Output
+  -- 1. Molten: Configuration Professionnelle (Type VSCode)
   {
     "benlubas/molten-nvim",
-    event = { "BufRead *.ipynb", "BufRead *.md" },
+    event = { "User LoadHeavy" },
+    version = "^1.0.0",
     build = ":UpdateRemotePlugins",
     init = function()
+      -- CONFIGURATION AFFICHAGE (Identique à VSCode)
       vim.g.molten_auto_open_output = true
       vim.g.molten_virt_text_output = true
+      vim.g.molten_virt_lines_off_by_1 = false
       vim.g.molten_output_win_max_height = 20
+      vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
-    end,
-  },
-
-  -- 2. Jupytext: Le Pont Invisible (MD First)
-  {
-    "GCBallesteros/jupytext.nvim",
-    event = { "BufReadPre *.ipynb", "BufNewFile *.ipynb", "BufRead *.md" },
-    lazy = false, 
-    opts = { style = "markdown", output_extension = "md", force_ft = "markdown" },
-    config = function(_, opts)
-      require("jupytext").setup(opts)
-
-      -- 🎨 SYSTÈME DE COULEURS PERSISTANT (V3.3)
-      local function set_colors()
-        vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#FFD700", bold = true, default = true })
-        vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#FF8C00", bold = true, default = true })
-        vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#5c6370", italic = true, default = true })
+      
+      -- FONCTION DE SECOURS : Exécuter une plage avec affichage forcé
+      _G.molten_run_range = function(start_l, end_l)
+        if start_l > end_l then return end
+        vim.cmd(string.format("silent! %d,%dMoltenEvaluateVisual", start_l, end_l))
       end
-      set_colors()
 
-      local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
-
-      -- 🎨 DÉCORATEUR "ULTRA-SYNC" (MD & IPYNB IDENTIQUES)
-      function do_decorate(buf)
-        buf = (buf == 0 or buf == nil) and vim.api.nvim_get_current_buf() or buf
-        if not vim.api.nvim_buf_is_valid(buf) then return end
-        
-        local name = vim.api.nvim_buf_get_name(buf)
-        local is_jupyter = name:match("%.ipynb") or name:match("%.md") or vim.b[buf].jupytext_fmt
-        if not is_jupyter then return end
-
-        vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
-        set_colors() -- Force refresh colors
-        
-        vim.opt_local.conceallevel = 2
-        vim.opt_local.concealcursor = "nvic"
-
-        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-        local in_code = false
-
+      -- DÉTECTION DES LIMITES DE CELLULES
+      _G.get_cells = function()
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local cells = {}
+        local current_start = 1
         for i, line in ipairs(lines) do
-          local function hide_line()
-            if i == cursor_line then return end 
-            local mask = string.rep(" ", vim.fn.strdisplaywidth(line))
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { mask, "Conceal" } },
-              virt_text_pos = "overlay", priority = 9000,
-            })
-          end
-
-          -- 1. SECTIONS MARKDOWN / HEADERS
-          if line:match("^#+ ") or line:match("<!-- #region") or line:match("#region") then
-            hide_line()
-            local title = line:gsub("^#+%s*", ""):gsub("<!%-%-%s*", ""):gsub("%s*%-%->", "")
-            title = title ~= "" and title:upper() or "SECTION"
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { 
-                { "📝 ╔══ # " .. title .. " ", "JupyterMdHeader" },
-                { string.rep("═", math.max(65 - #title, 5)), "JupyterMdHeader" },
-                { "╗", "JupyterMdHeader" }
-              } },
-              virt_lines_above = true, priority = 8900 })
-          elseif line:match("<!-- #endregion") or line:match("#endregion") then
-            hide_line()
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { 
-                { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
-                { " FIN SECTION ", "JupyterFooter" }, 
-                { string.rep("═", 54), "JupyterFooter" },
-                { "╝", "JupyterFooter" }
-              } },
-              virt_lines_above = false, priority = 8900 })
-          
-          -- 2. BLOCS DE CODE (Standard / Magics / VSCode)
-          elseif line:match("^%s*```") or line:match("^%%%%%w+") then
-            hide_line()
-            if not in_code then
-              local lang = line:match('languageId": "([^"]+)"') 
-                           or line:match("^%s*```(%w+)") 
-                           or line:match("^%%%%(%w+)") 
-                           or "Python"
-              lang = lang:gsub("^%w", string.upper)
-              
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { 
-                  { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
-                  { string.rep("═", 55), "JupyterCodeHeader" },
-                  { "╗", "JupyterCodeHeader" }
-                } },
-                virt_lines_above = true, priority = 8900 })
-              in_code = true
-            else
-              vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { 
-                  { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
-                  { " FIN CELLULE CODE ", "JupyterFooter" },
-                  { string.rep("═", 50), "JupyterFooter" },
-                  { "╝", "JupyterFooter" }
-                } },
-                virt_lines_above = false, priority = 8900 })
-              in_code = false
-            end
+          if line:match("^# %%%%") or line:match("^# %%") or line:match("^```python") then
+            if i > 1 then table.insert(cells, {s = current_start, e = i - 1}) end
+            current_start = i
           end
         end
+        table.insert(cells, {s = current_start, e = #lines})
+        return cells
       end
 
-      -- ⚡ TRIGGERS
-      vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "BufWritePost", "CursorMoved", "TextChanged" }, {
-        pattern = "*",
-        callback = function(ev)
-          local name = vim.api.nvim_buf_get_name(ev.buf)
-          if name:match("%.ipynb") or name:match("%.md") then
-            vim.defer_fn(function() if vim.api.nvim_buf_is_valid(ev.buf) then do_decorate(ev.buf) end end, 20)
+      -- COMMANDES SPÉCIFIQUES CELL-BY-CELL
+      
+      -- 1. Execute Cell
+      vim.api.nvim_create_user_command("MoltenRunCell", function()
+        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+        local cells = _G.get_cells()
+        for _, cell in ipairs(cells) do
+          if cursor_line >= cell.s and cursor_line <= cell.e then
+            _G.molten_run_range(cell.s, cell.e)
+            break
           end
-        end,
-      })
-
-      -- 🔄 COMMANDES
-      vim.api.nvim_create_user_command("JDecor", function() do_decorate() end, {})
-      vim.api.nvim_create_user_command("JSync", function()
-        local path = vim.api.nvim_buf_get_name(0)
-        if path:match("%.md$") then
-          local ipynb = path:gsub("%.md$", ".ipynb")
-          vim.fn.system({ "jupytext", "--update", "--set-kernel", "python3_nvim", "--to", "ipynb", path })
-          vim.notify("🔄 IPYNB Synchronisé : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
         end
       end, {})
 
-      vim.api.nvim_create_autocmd("BufWritePost", {
-        pattern = "*.md",
-        callback = function() vim.cmd("JSync") end,
+      -- 2. Run All (Séquentiel pour voir les résultats sous chaque cellule)
+      vim.api.nvim_create_user_command("MoltenRunAll", function()
+        vim.cmd("silent! %MoltenDelete")
+        local cells = _G.get_cells()
+        vim.notify("🚀 Exécution de " .. #cells .. " cellules...", vim.log.levels.INFO)
+        
+        local idx = 1
+        local function next_c()
+          if idx > #cells then 
+            vim.notify("✅ Run All Terminé", vim.log.levels.INFO) 
+            return 
+          end
+          local c = cells[idx]
+          _G.molten_run_range(c.s, c.e)
+          idx = idx + 1
+          vim.defer_fn(next_c, 500) -- Délai pour laisser l'output s'afficher
+        end
+        next_c()
+      end, {})
+
+      -- 3. Run Above / Below
+      vim.api.nvim_create_user_command("MoltenRunAbove", function()
+        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+        local cells = _G.get_cells()
+        for _, cell in ipairs(cells) do
+          if cell.e < cursor_line then _G.molten_run_range(cell.s, cell.e) end
+        end
+      end, {})
+
+      vim.api.nvim_create_user_command("MoltenRunBelow", function()
+        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+        local cells = _G.get_cells()
+        for _, cell in ipairs(cells) do
+          if cell.s >= cursor_line then _G.molten_run_range(cell.s, cell.e) end
+        end
+      end, {})
+    end,
+    keys = {
+      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Kernel" },
+      { "<leader>jc", ":MoltenRunCell<cr>", desc = "Execute Cell" },
+      { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line (Resultat Inline)" },
+      { "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Execute Selection" },
+      { "<leader>ja", ":MoltenRunAll<cr>", desc = "Run All Cells" },
+      { "<leader>ju", ":MoltenRunAbove<cr>", desc = "Run All Above" },
+      { "<leader>jb", ":MoltenRunBelow<cr>", desc = "Run All Below" },
+      { "<leader>jd", ":MoltenDelete<cr>", desc = "Delete Output" },
+      { "<leader>jD", ":silent! %MoltenDelete<cr>", desc = "Delete All Outputs" },
+      { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "Open Output Window" },
+    },
+  },
+
+  -- 2. Jupytext : Config stable Markdown (Avec Décorateurs ✨)
+  {
+    "GCBallesteros/jupytext.nvim",
+    event = { "User LoadHeavy" },
+    lazy = true,
+    opts = {
+      style = "markdown",        -- Format d affichage par défaut : MD
+      output_extension = "md",   -- Extension du fichier temporaire : .md
+      force_ft = "markdown",     -- Filetype Neovim : markdown
+    },
+    config = function(_, opts)
+      require("jupytext").setup(opts)
+      local jd = require("util.jupyter_decorator")
+
+      -- 🔄 NETTOYAGE SIDECARS
+      local function cleanup_sidecars()
+        local base = vim.fn.expand("%:p:r")
+        if base == "" then return end
+        os.remove(base .. ".md")
+        os.remove(base .. ".py")
+      end
+
+      -- Format par défaut
+      if vim.g.jupytext_user_fmt == nil then
+        vim.g.jupytext_user_fmt = "markdown"
+      end
+
+      -- 🔄 TOGGLE ATOMIQUE
+      vim.api.nvim_create_user_command("JupyterToggleView", function()
+        if vim.bo.modified then vim.cmd("w") end
+        cleanup_sidecars()
+
+        local current = vim.g.jupytext_user_fmt or "markdown"
+        local target = (current == "markdown") and "py:percent" or "markdown"
+        vim.g.jupytext_user_fmt = target
+
+        if target == "markdown" then
+          require("jupytext").setup({ style = "markdown", output_extension = "md", force_ft = "markdown" })
+        else
+          require("jupytext").setup({ style = "hydrogen", output_extension = "py", force_ft = "python" })
+        end
+
+        vim.notify("🚀 Vue : " .. (target == "markdown" and "MARKDOWN ✨" or "PYTHON 🐍"), vim.log.levels.WARN)
+        vim.cmd("e!")
+      end, {})
+
+      -- ⌨️ RACCOURCIS
+      vim.keymap.set("n", "<leader>jt", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
+      vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
+
+      -- ⚡ AUTOMATISME DÉCORATIONS
+      vim.api.nvim_create_autocmd("BufReadPre", {
+        pattern = "*.ipynb",
+        callback = function(ev)
+          vim.b[ev.buf].jupytext_fmt = vim.g.jupytext_user_fmt or "markdown"
+        end,
       })
 
-      vim.keymap.set("n", "<leader>jd", "<cmd>JDecor<cr>", { desc = "Rafraîchir les Cadres" })
-      vim.keymap.set("n", "<leader>js", "<cmd>JSync<cr>", { desc = "Sync Automatique IPYNB" })
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorHold" }, {
+        pattern = "*.ipynb",
+        callback = function(ev)
+          vim.defer_fn(function()
+            if vim.api.nvim_buf_is_valid(ev.buf) then
+              jd.decorate(ev.buf)
+            end
+          end, 50)
+        end,
+      })
+
+      -- Nettoyage auto après sauvegarde
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.ipynb",
+        callback = cleanup_sidecars,
+      })
+
+      -- 🔄 FILE WATCHER
+      local watcher = nil
+      local function start_watching(buf)
+        if watcher then watcher:stop() end
+        local path = vim.api.nvim_buf_get_name(buf)
+        if path == "" or not path:find("agent_brain.ipynb") then return end
+        watcher = vim.loop.new_fs_event()
+        watcher:start(path, {}, vim.schedule_wrap(function(err)
+          if not err and vim.api.nvim_buf_is_valid(buf) and not vim.bo[buf].modified then
+            local fmt = vim.b[buf].jupytext_fmt
+            vim.cmd("e!")
+            vim.b[buf].jupytext_fmt = fmt
+          end
+        end))
+      end
+
+      vim.api.nvim_create_autocmd("BufWinEnter", {
+        pattern = "*.ipynb",
+        callback = function(ev) start_watching(ev.buf) end,
+      })
+
+      vim.opt.autoread = true
+      vim.api.nvim_create_user_command("JupyterDecorate", function() jd.decorate() end, {})
     end,
+  },
+
+  {
+    "3rd/image.nvim",
+    event = { "User LoadHeavy" },
+    opts = {
+      backend = "kitty",
+      integrations = {
+        markdown = { enabled = true, filetypes = { "markdown", "python" } },
+      },
+    },
   },
 }
