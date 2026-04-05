@@ -110,8 +110,9 @@ return {
         local path = vim.api.nvim_buf_get_name(0)
         if path:match("%.md$") then
           local ipynb = path:gsub("%.md$", ".ipynb")
-          vim.fn.system({ "jupytext", "--update", "--to", "ipynb", path })
-          vim.notify("🔄 IPYNB Synchronisé : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
+          -- Utilisation de --set-kernel pour forcer une kernelspec valide (évite le crash kernelspec nil)
+          vim.fn.system({ "jupytext", "--update", "--set-kernel", "python3_nvim", "--to", "ipynb", path })
+          vim.notify("🔄 IPYNB Synchronisé (Kernelspec Fixe) : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
         end
       end, {})
 
