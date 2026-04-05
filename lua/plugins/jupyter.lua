@@ -1,5 +1,5 @@
 return {
-  -- 1. Molten (Preserved)
+  -- 1. Molten: Exécution & Output (STABLE)
   {
     "benlubas/molten-nvim",
     event = { "BufRead *.ipynb", "BufNewFile *.ipynb" },
@@ -8,12 +8,11 @@ return {
       vim.g.molten_auto_open_output = true
       vim.g.molten_virt_text_output = true
       vim.g.molten_output_win_max_height = 20
-      vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
     end,
   },
 
-  -- 2. Jupytext (STABLE & CLEAN)
+  -- 2. Jupytext: Le Coeur du Pont (OPTIMISÉ & SÉCURISÉ)
   {
     "GCBallesteros/jupytext.nvim",
     event = { "BufReadPre *.ipynb", "BufNewFile *.ipynb" },
@@ -24,12 +23,11 @@ return {
 
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
-      -- 🧼 NETTOYEUR DE MARQUEURS (Pour restaurer les COULEURS)
-      local function sanitize_markers(buf)
+      -- 🧼 NETTOYEUR DE MARQUEURS (Pour les couleurs, une seule fois au chargement)
+      local function sanitize_buffer(buf)
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
         local changed = false
         for i, line in ipairs(lines) do
-          -- Transforme ```python vscode={"languageId": "bat"} en ```bat
           local lang = line:match('languageId":%s*"([^"]+)"')
           if lang then
             lines[i] = "```" .. lang
@@ -38,6 +36,7 @@ return {
         end
         if changed then
           vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+          vim.cmd("silent! w") -- Sauvegarde le nettoyage
         end
       end
 
@@ -64,7 +63,6 @@ return {
             })
           end
 
-          -- MARKDOWN
           if line:match("<!-- #region") or line:match("#region") then
             hide_line()
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
@@ -75,8 +73,6 @@ return {
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
               virt_lines_above = false, priority = 2400 })
-          
-          -- CODE
           elseif line:match("^%s*```") then
             hide_line()
             if not in_code then
@@ -95,23 +91,23 @@ return {
         end
       end
 
-      -- AUTOMATISMES (RÉACTIVITÉ MAXIMALE)
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufReadPost", "BufWritePost", "TextChanged", "CursorMoved" }, {
+      -- 🔄 AUTOMATISMES (SÉCURISÉS)
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufReadPost", "CursorMoved", "InsertLeave" }, {
         pattern = "*.ipynb",
         callback = function(ev)
-          if ev.event == "BufReadPost" then sanitize_markers(ev.buf) end
+          if ev.event == "BufReadPost" then 
+            vim.defer_fn(function() sanitize_buffer(ev.buf) end, 100)
+          end
           vim.defer_fn(function() 
             if vim.api.nvim_buf_is_valid(ev.buf) then decorate_cells(ev.buf) end 
-          end, 10)
+          end, 20)
         end,
       })
 
-      -- SYNC & CLEANUP
-      vim.api.nvim_create_autocmd("BufWritePost", {
-        pattern = "*.ipynb",
+      -- Nettoyage des sidecars APRÈS la session, pas pendant chaque save
+      vim.api.nvim_create_autocmd("VimLeave", {
         callback = function()
-          local base = vim.fn.expand("%:p:r")
-          os.remove(base .. ".md"); os.remove(base .. ".py")
+          vim.fn.system("rm /home/kd/scripts/*.md /home/kd/scripts/*.py")
         end,
       })
 
