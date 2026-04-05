@@ -113,7 +113,7 @@ function M.decorate(buf)
       
       -- BLOCS DE CODE MD
       elseif line:match("^%s*```") or line:match("^%%%%%w+") then
-        hide_line(idx, line)
+        -- On ne masque PAS les balises ``` lang pour qu'elles restent éditables (vscode={"languageId"...})
         if not in_code then
           local lang = line:match('languageId": "([^"]+)"') 
                        or line:match("^%s*```(%w+)") 
