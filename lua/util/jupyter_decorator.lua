@@ -111,16 +111,21 @@ function M.decorate(buf)
           virt_lines_above = false, priority = 4900 })
       
       -- BLOCS DE CODE MD
-      elseif line:match("^%s*```") or line:match("^%%%%%w+") then
+      -- On NE MATCHE PLUS les '%%w+' ici car cela casse avec le code LaTeX (ex: %%hhjhj).
+      elseif line:match("^%s*```") then
         -- Pas de hide_line() ici pour les blocs ``` afin de les garder visibles/éditables
         if not in_code then
           local lang = line:match('languageId": "([^"]+)"') 
                        or line:match("^%s*```(%w+)") 
-                       or line:match("^%%%%(%w+)") 
                        or "Python"
           lang = lang:gsub("^%w", string.upper)
           
+          -- ASTUCE ANTI-COLLAPSE : On ajoute un espace "right_align" vide. 
+          -- Cela force Neovim à ne pas masquer la ligne si un plugin externe (render-markdown)
+          -- utilise le conceallevel agressif.
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
+            virt_text = { { " ", "Normal" } },
+            virt_text_pos = "right_align",
             virt_lines = { { 
               { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
               { string.rep("═", 50), "JupyterCodeHeader" },
@@ -130,6 +135,8 @@ function M.decorate(buf)
           in_code = true
         else
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
+            virt_text = { { " ", "Normal" } },
+            virt_text_pos = "right_align",
             virt_lines = { { 
               { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
               { " FIN CELLULE CODE ", "JupyterFooter" },
