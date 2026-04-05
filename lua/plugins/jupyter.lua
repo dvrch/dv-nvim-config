@@ -14,28 +14,26 @@ return {
       vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
       
-      -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé (via Visual Mode)
+      -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé NATIVEMENT
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
-        
-        -- 1. Sauvegarde de la position originale
         local pos = vim.api.nvim_win_get_cursor(0)
         
-        -- 2. Création SYNCHRONE des marques visuelles '< et '>
-        -- On évite api.nvim_feedkeys(esc) car cela ferme violemment le popup 
-        -- "Select Kernel" de Molten si le kernel n'est pas encore initialisé !
+        -- Création d'une simulation parfaite d'un utilisateur sélectionnant le texte au pixel près
+        -- En utilisant feedkeys "x" (synchrone), Neovim traite cela instantanément comme natif.
+        -- Le mode Visuel est automatiquement refermé par l'entrée de commande (:) !
         vim.api.nvim_win_set_cursor(0, {start_l, 0})
-        vim.cmd("normal! V")
-        if end_l > start_l then
-            vim.api.nvim_win_set_cursor(0, {end_l, 0})
+        
+        local lines_down = end_l - start_l
+        local keys = "V"
+        if lines_down > 0 then
+            keys = keys .. lines_down .. "j"
         end
-        vim.cmd("execute 'normal! \\<Esc>'")
+        keys = keys .. ":MoltenEvaluateVisual<CR>"
         
-        -- 3. Appel de Molten (Il va lire les marques '< et '> laissées)
-        -- Si aucun kernel n'est actif, le prompt UI apparaîtra de manière stable !
-        vim.cmd("MoltenEvaluateVisual")
+        local seq = vim.api.nvim_replace_termcodes(keys, true, false, true)
+        vim.api.nvim_feedkeys(seq, "x", false)
         
-        -- 4. Restaurer le curseur
         pcall(vim.api.nvim_win_set_cursor, 0, pos)
       end
 
@@ -55,7 +53,7 @@ return {
           for i, line in ipairs(lines) do
             if line:match("^# %%%%") or line:match("^# %%") then
               if i > 1 then 
-                -- Python comments ne dérangent pas Jupyter
+                -- Python comments (# %%) sont sûrs à envoyer au Kernel
                 table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1}) 
               end
               current_start = i
@@ -75,8 +73,8 @@ return {
                 in_code = true
               else
                 local cell_end = i
-                -- La zone cliquable va de ``` à ```, mais l'exécution OMET les balises !
-                -- Sinon Jupyter plante sur "SyntaxError: invalid syntax"
+                -- CRITIQUE : on extrait rigoureusement le code_s et code_e pour EXCLURE
+                -- les lignes de backticks (` ``` `) car elles font planter le noyau Python !
                 if cell_end - 1 >= cell_start + 1 then
                   table.insert(cells, {s = cell_start, e = cell_end, code_s = cell_start + 1, code_e = cell_end - 1})
                 end
@@ -90,7 +88,6 @@ return {
 
       -- COMMANDES SPÉCIFIQUES CELL-BY-CELL
       
-      -- 1. Execute Cell
       vim.api.nvim_create_user_command("MoltenRunCell", function()
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
         local cells = _G.get_cells()
@@ -102,7 +99,34 @@ return {
         end
       end, {})
 
-      -- Nettoyage massif et robuste de tous les outputs (Contourne le bug Python de %MoltenDelete)
+      vim.api.nvim_create_user_command("MoltenRunVisualSmart", function()
+        local start_l = vim.fn.line("'<")
+        local end_l = vim.fn.line("'>")
+        
+        local cells = _G.get_cells()
+        local intersected = {}
+        for _, cell in ipairs(cells) do
+           if not (cell.e < start_l or cell.s > end_l) then
+             table.insert(intersected, cell)
+           end
+        end
+
+        if #intersected > 0 then
+           vim.notify("🚀 Multi-Run Sélection : " .. #intersected .. " cellules validées", vim.log.levels.INFO)
+           local idx = 1
+           local function next_c()
+             if idx > #intersected then return end
+             local c = intersected[idx]
+             _G.molten_run_range(c.code_s, c.code_e)
+             idx = idx + 1
+             vim.defer_fn(next_c, 500)
+           end
+           next_c()
+        else
+           _G.molten_run_range(start_l, end_l)
+        end
+      end, { range = true })
+
       vim.api.nvim_create_user_command("MoltenDeleteAll", function()
         local pos = vim.api.nvim_win_get_cursor(0)
         local cells = _G.get_cells()
@@ -114,12 +138,11 @@ return {
         vim.notify("🗑️ Tous les outputs Molten nettoyés !", vim.log.levels.INFO)
       end, {})
 
-      -- 2. Run All (Séquentiel pour voir les résultats sous chaque cellule)
       vim.api.nvim_create_user_command("MoltenRunAll", function()
-        vim.cmd("MoltenDeleteAll") -- Appel de notre nettoyeur robuste au lieu de %MoltenDelete
+        vim.cmd("MoltenDeleteAll")
         local cells = _G.get_cells()
         if #cells == 0 then return end
-        vim.notify("🚀 Exécution de " .. #cells .. " cellules...", vim.log.levels.INFO)
+        vim.notify("🚀 Exécution Globale (" .. #cells .. " cellules)...", vim.log.levels.INFO)
         
         local idx = 1
         local function next_c()
@@ -130,12 +153,11 @@ return {
           local c = cells[idx]
           _G.molten_run_range(c.code_s, c.code_e)
           idx = idx + 1
-          vim.defer_fn(next_c, 500) -- Délai pour laisser l'output s'afficher sans collision
+          vim.defer_fn(next_c, 500)
         end
         next_c()
       end, {})
 
-      -- 3. Run Above / Below
       vim.api.nvim_create_user_command("MoltenRunAbove", function()
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
         local cells = _G.get_cells()
@@ -155,8 +177,8 @@ return {
     keys = {
       { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Kernel" },
       { "<leader>jc", ":MoltenRunCell<cr>", desc = "Execute Cell" },
-      { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line (Resultat Inline)" },
-      { "<leader>jv", ":<C-u>MoltenEvaluateVisual<cr>", mode = "v", desc = "Execute Selection" },
+      { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line" },
+      { "<leader>jv", ":<C-u>MoltenRunVisualSmart<cr>", mode = "v", desc = "Execute Smart Selection" },
       { "<leader>ja", ":MoltenRunAll<cr>", desc = "Run All Cells" },
       { "<leader>ju", ":MoltenRunAbove<cr>", desc = "Run All Above" },
       { "<leader>jb", ":MoltenRunBelow<cr>", desc = "Run All Below" },
