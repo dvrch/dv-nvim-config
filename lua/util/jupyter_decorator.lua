@@ -11,6 +11,7 @@ local function setup_hls()
   -- Récupération dynamique de la couleur de fond (pour rendre le curseur aveugle au texte caché)
   local normal_hl = vim.api.nvim_get_hl(0, { name = "Normal" })
   local bg_color = normal_hl.bg or "NONE"
+  if type(bg_color) == "number" then bg_color = string.format("#%06x", bg_color) end
   vim.api.nvim_set_hl(0, "JupyterHidden", { fg = bg_color, bg = bg_color, default = true })
 end
 
@@ -51,7 +52,6 @@ function M.decorate(buf)
 
   if not M.is_enabled(buf) then return end
 
-  -- On force les options conceal locales au cas où de vieux blocs markdown interfèrent
   vim.opt_local.conceallevel = 2
   vim.opt_local.concealcursor = "nvic"
 
@@ -71,14 +71,13 @@ function M.decorate(buf)
 
   -- Masquage OPAQUE (Adieu définitif Ghost lines & Cache-cache)
   local function hide_line(idx, line)
+    -- Ne pas vérifier cursor_line : cela garantit la persistance visuelle
     local width = vim.fn.strdisplaywidth(line)
     if width == 0 then width = 1 end
-    local mask = string.rep(" ", width + 10) -- On masque large
+    local mask = string.rep(" ", width + 10)
     vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
       virt_text = { { mask, "JupyterHidden" } },
-      virt_text_pos = "overlay", 
-      priority = 2100,
-      -- Ne pas cacher le virt_text même si cursor est dessus
+      virt_text_pos = "overlay", priority = 5000,
       virt_text_hide = false,
     })
   end
@@ -98,7 +97,7 @@ function M.decorate(buf)
             { string.rep("═", math.max(60 - #title - 8, 5)), "JupyterMdHeader" },
             { "╗", "JupyterMdHeader" }
           } },
-          virt_lines_above = true, priority = 2000 })
+          virt_lines_above = true, priority = 4900 })
 
       elseif line:match("<!-- #endregion") or line:match("#endregion") then
         hide_line(idx, line)
@@ -109,11 +108,11 @@ function M.decorate(buf)
             { string.rep("═", 49), "JupyterFooter" },
             { "╝", "JupyterFooter" }
           } },
-          virt_lines_above = false, priority = 2000 })
+          virt_lines_above = false, priority = 4900 })
       
       -- BLOCS DE CODE MD
       elseif line:match("^%s*```") or line:match("^%%%%%w+") then
-        -- On ne masque PAS les balises ``` lang pour qu'elles restent éditables (vscode={"languageId"...})
+        -- Pas de hide_line() ici pour les blocs ``` afin de les garder visibles/éditables
         if not in_code then
           local lang = line:match('languageId": "([^"]+)"') 
                        or line:match("^%s*```(%w+)") 
@@ -127,7 +126,7 @@ function M.decorate(buf)
               { string.rep("═", 50), "JupyterCodeHeader" },
               { "╗", "JupyterCodeHeader" }
             } },
-            virt_lines_above = true, priority = 2000 })
+            virt_lines_above = true, priority = 4900 })
           in_code = true
         else
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
@@ -137,7 +136,7 @@ function M.decorate(buf)
               { string.rep("═", 45), "JupyterFooter" },
               { "╝", "JupyterFooter" }
             } },
-            virt_lines_above = false, priority = 2000 })
+            virt_lines_above = false, priority = 4900 })
           in_code = false
         end
       end
@@ -154,7 +153,7 @@ function M.decorate(buf)
               { string.rep("═", 50), "JupyterFooter" },
               { "╝", "JupyterFooter" }
             } },
-            virt_lines_above = true, priority = 2050 })
+            virt_lines_above = true, priority = 4950 })
         end
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
           virt_lines = { { 
@@ -162,7 +161,7 @@ function M.decorate(buf)
             { string.rep("═", 43), "JupyterMdHeader" },
             { "╗", "JupyterMdHeader" }
           } },
-          virt_lines_above = false, priority = 2000 })
+          virt_lines_above = false, priority = 4900 })
 
       elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
         hide_line(idx, line)
@@ -174,7 +173,7 @@ function M.decorate(buf)
               { string.rep("═", 50), "JupyterFooter" },
               { "╝", "JupyterFooter" }
             } },
-            virt_lines_above = true, priority = 2050 })
+            virt_lines_above = true, priority = 4950 })
         end
         vim.api.nvim_buf_set_extmark(buf, M.ns_cell, idx, 0, {
           virt_lines = { { 
@@ -182,7 +181,7 @@ function M.decorate(buf)
             { string.rep("═", 47), "JupyterCodeHeader" },
             { "╗", "JupyterCodeHeader" }
           } },
-          virt_lines_above = false, priority = 2000 })
+          virt_lines_above = false, priority = 4900 })
       end
     end
   end
