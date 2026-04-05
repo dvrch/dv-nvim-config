@@ -247,6 +247,48 @@ return {
         end,
       })
 
+      -- 🛡️ GARDE ANTI-CORRUPTION : Vérifie le JSON avant TOUTE écriture
+      vim.api.nvim_create_autocmd("BufWritePre", {
+        pattern = "*.ipynb",
+        callback = function()
+          local path = vim.fn.expand("%:p")
+          -- Lire la 1ère ligne du fichier ACTUEL sur disque
+          local first_line = vim.fn.readfile(path, "", 1)
+          if first_line and first_line[1] and first_line[1]:sub(1, 3) == "---" then
+            -- Le fichier sur disque est déjà corrompu (front matter YAML !)
+            -- On ne peut pas faire grand chose ici, mais on signale
+            vim.notify("⚠️ CORRUPTION DÉTECTÉE dans " .. vim.fn.fnamemodify(path, ":t") ..
+              " — Utilisez :JupyterRestore pour réparer", vim.log.levels.ERROR)
+          end
+        end,
+      })
+
+      -- 💾 BACKUP JSON : Sauvegarder le dernier bon JSON
+      local backup_path = vim.fn.expand("~/.local/share/nvim/agent_brain_backup.json")
+      vim.api.nvim_create_autocmd("BufReadPost", {
+        pattern = "*/agent_brain.ipynb",
+        callback = function()
+          local path = vim.fn.expand("%:p")
+          local content = table.concat(vim.fn.readfile(path), "\n")
+          if content:sub(1,1) == "{" then
+            vim.fn.writefile(vim.fn.readfile(path), backup_path)
+          end
+        end,
+      })
+
+      -- 🔧 COMMANDE DE RESTAURATION D'URGENCE
+      vim.api.nvim_create_user_command("JupyterRestore", function()
+        local path = vim.fn.expand("%:p")
+        if vim.fn.filereadable(backup_path) == 1 then
+          vim.fn.system("cp " .. vim.fn.shellescape(backup_path) .. " " .. vim.fn.shellescape(path))
+          cleanup_sidecars()
+          vim.cmd("e!")
+          vim.notify("✅ JSON restauré depuis le backup !", vim.log.levels.INFO)
+        else
+          vim.notify("❌ Pas de backup disponible", vim.log.levels.ERROR)
+        end
+      end, {})
+
       -- Nettoyage auto après sauvegarde
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.ipynb",
