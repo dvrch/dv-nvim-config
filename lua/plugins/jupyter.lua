@@ -263,7 +263,25 @@ return {
         end,
       })
 
-      -- Nettoyage auto après sauvegarde
+      -- 🔄 SYNCHRONISATION INVERSE : Markdown -> IPYNB
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        pattern = "*.md",
+        callback = function(ev)
+          local md_path = ev.match
+          local ipynb_path = md_path:gsub("%.md$", ".ipynb")
+          
+          if vim.fn.filereadable(ipynb_path) == 1 then
+            vim.fn.jobstart({ "jupytext", "--update", "--to", "ipynb", md_path }, {
+              on_exit = function()
+                vim.notify("🔄 Notebook synchronisé depuis Markdown : " .. vim.fn.fnamemodify(ipynb_path, ":t"), 
+                  vim.log.levels.INFO)
+              end
+            })
+          end
+        end,
+      })
+
+      -- Nettoyage auto après sauvegarde des Notebooks
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.ipynb",
         callback = cleanup_sidecars,
