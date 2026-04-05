@@ -111,7 +111,6 @@ function M.decorate(buf)
           virt_lines_above = false, priority = 4900 })
       
       -- BLOCS DE CODE MD
-      -- On NE MATCHE PLUS les '%%w+' ici car cela casse avec le code LaTeX (ex: %%hhjhj).
       elseif line:match("^%s*```") then
         if not in_code then
           local lang = line:match('languageId": "([^"]+)"') 
@@ -119,10 +118,6 @@ function M.decorate(buf)
                        or "Python"
           lang = lang:gsub("^%w", string.upper)
           
-          -- ASTUCE ANTI-RENDER-MARKDOWN : 
-          -- Les plugins Markdown cachent et réduisent (collapse) la ligne ```python.
-          -- Pour éviter que nos bordures ne soient détruites avec la ligne, on les accroche
-          -- à la PREMIÈRE ligne de code (idx + 1) !
           local safe_idx = math.min(#lines - 1, idx + 1)
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, safe_idx, 0, {
             virt_lines = { { 
@@ -133,7 +128,9 @@ function M.decorate(buf)
             virt_lines_above = true, priority = 4900 })
           in_code = true
         else
-          -- Pour la fin du block ```, on l'accroche à la DERNIÈRE ligne de code (idx - 1)
+          -- 🎯 PLACEMENT EXACT : On l'accroche à la dernière ligne de code avec prio 10000.
+          -- Comme Molten accroche son output à cette même ligne avec une prio ~4090, 
+          -- la bordure passe AU DESSUS, repoussant l'output Molten **en dehors** de la cellule !
           local safe_idx = math.max(0, idx - 1)
           vim.api.nvim_buf_set_extmark(buf, M.ns_cell, safe_idx, 0, {
             virt_lines = { { 
@@ -142,7 +139,7 @@ function M.decorate(buf)
               { string.rep("═", 45), "JupyterFooter" },
               { "╝", "JupyterFooter" }
             } },
-            virt_lines_above = false, priority = 4900 })
+            virt_lines_above = false, priority = 10000 })
           in_code = false
         end
       end

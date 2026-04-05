@@ -102,9 +102,21 @@ return {
         end
       end, {})
 
+      -- Nettoyage massif et robuste de tous les outputs (Contourne le bug Python de %MoltenDelete)
+      vim.api.nvim_create_user_command("MoltenDeleteAll", function()
+        local pos = vim.api.nvim_win_get_cursor(0)
+        local cells = _G.get_cells()
+        for _, cell in ipairs(cells) do
+          pcall(vim.api.nvim_win_set_cursor, 0, {cell.code_s, 0})
+          vim.cmd("silent! MoltenDelete")
+        end
+        pcall(vim.api.nvim_win_set_cursor, 0, pos)
+        vim.notify("🗑️ Tous les outputs Molten nettoyés !", vim.log.levels.INFO)
+      end, {})
+
       -- 2. Run All (Séquentiel pour voir les résultats sous chaque cellule)
       vim.api.nvim_create_user_command("MoltenRunAll", function()
-        vim.cmd("silent! %MoltenDelete")
+        vim.cmd("MoltenDeleteAll") -- Appel de notre nettoyeur robuste au lieu de %MoltenDelete
         local cells = _G.get_cells()
         if #cells == 0 then return end
         vim.notify("🚀 Exécution de " .. #cells .. " cellules...", vim.log.levels.INFO)
@@ -149,7 +161,7 @@ return {
       { "<leader>ju", ":MoltenRunAbove<cr>", desc = "Run All Above" },
       { "<leader>jb", ":MoltenRunBelow<cr>", desc = "Run All Below" },
       { "<leader>js", ":MoltenDelete<cr>", desc = "Delete Output" },
-      { "<leader>jS", ":silent! %MoltenDelete<cr>", desc = "Delete All Outputs" },
+      { "<leader>jS", ":MoltenDeleteAll<cr>", desc = "Delete All Outputs" },
       { "<leader>jo", ":noautocmd MoltenEnterOutput<cr>", desc = "Open Output Window" },
     },
   },
