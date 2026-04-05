@@ -14,22 +14,21 @@ return {
       vim.g.molten_wrap_output = true
       vim.g.molten_image_provider = "image.nvim"
       
-      -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé NATIVEMENT
+      -- FONCTION OBLIGATOIRE : Exécuter une plage avec ancrage forcé pour Molten
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
         
-        -- Définition asbolue et atomique des marques visuelles '< et '>
-        -- Cela contourne totalement le besoin de facker une sélection visuelle avec feedkeys
-        -- et élimine le risque d'erreur E481 (Les plages ne sont pas autorisées) 
-        -- ainsi que E21 (modification buffer invalide au sein d'une popup Molten UI)
+        -- DÉPLACEMENT PHYSIQUE CRITIQUE : Molten ancre souvent l'output à la position du curseur
+        -- lue asynchronement depuis Python (une fraction de seconde plus tard).
+        -- Si l'on restaure le curseur trop vite, tous les outputs s'effondrent à la même place !
+        vim.api.nvim_win_set_cursor(0, {end_l, 0})
+        
         vim.fn.setpos("'<", {0, start_l, 1, 0})
         vim.fn.setpos("'>", {0, end_l, 2147483647, 0})
-        
-        -- Lancement direct (Molten lira les marques que nous venons d'assigner au pixel près)
         vim.cmd("MoltenEvaluateVisual")
       end
 
-      -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE (Parfaite synchro avec les décorateurs)
+      -- DÉTECTION DES LIMITES DE CELLULES HYBRIDE
       _G.get_cells = function()
         local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
         local cells = {}
@@ -40,22 +39,15 @@ return {
         end
 
         if is_py then
-          -- VUE PYTHON (# %%)
           local current_start = 1
           for i, line in ipairs(lines) do
             if line:match("^# %%%%") or line:match("^# %%") then
-              if i > 1 then 
-                -- Python comments (# %%) sont sûrs à envoyer au Kernel
-                table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1}) 
-              end
+              if i > 1 then table.insert(cells, {s = current_start, e = i - 1, code_s = current_start, code_e = i - 1}) end
               current_start = i
             end
           end
-          if #lines >= current_start then
-            table.insert(cells, {s = current_start, e = #lines, code_s = current_start, code_e = #lines})
-          end
+          if #lines >= current_start then table.insert(cells, {s = current_start, e = #lines, code_s = current_start, code_e = #lines}) end
         else
-          -- VUE MARKDOWN (```python)
           local in_code = false
           local cell_start = 1
           for i, line in ipairs(lines) do
@@ -65,8 +57,6 @@ return {
                 in_code = true
               else
                 local cell_end = i
-                -- CRITIQUE : on extrait rigoureusement le code_s et code_e pour EXCLURE
-                -- les lignes de backticks (` ``` `) car elles font planter le noyau Python !
                 if cell_end - 1 >= cell_start + 1 then
                   table.insert(cells, {s = cell_start, e = cell_end, code_s = cell_start + 1, code_e = cell_end - 1})
                 end
@@ -78,14 +68,35 @@ return {
         return cells
       end
 
+      -- RUNNER ASYNCHRONE SÉCURISÉ (Empêche l'étranglement RPC de Molten)
+      local function run_cells_async(cells_list, notify_msg, pos_restaure)
+        if #cells_list == 0 then return end
+        if notify_msg then vim.notify(notify_msg .. " (" .. #cells_list .. " cellules)", vim.log.levels.INFO) end
+        
+        local idx = 1
+        local function next_c()
+          if idx > #cells_list then
+            if notify_msg then vim.notify("✅ Multi-Run Terminé !", vim.log.levels.INFO) end
+            if pos_restaure then pcall(vim.api.nvim_win_set_cursor, 0, pos_restaure) end
+            return
+          end
+          local c = cells_list[idx]
+          _G.molten_run_range(c.code_s, c.code_e)
+          idx = idx + 1
+          vim.defer_fn(next_c, 500)
+        end
+        next_c()
+      end
+
       -- COMMANDES SPÉCIFIQUES CELL-BY-CELL
       
       vim.api.nvim_create_user_command("MoltenRunCell", function()
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-        local cells = _G.get_cells()
-        for _, cell in ipairs(cells) do
-          if cursor_line >= cell.s and cursor_line <= cell.e then
+        local pos = vim.api.nvim_win_get_cursor(0)
+        for _, cell in ipairs(_G.get_cells()) do
+          if pos[1] >= cell.s and pos[1] <= cell.e then
             _G.molten_run_range(cell.code_s, cell.code_e)
+            -- Restauration immédiate si cellule unique
+            vim.defer_fn(function() pcall(vim.api.nvim_win_set_cursor, 0, pos) end, 300)
             break
           end
         end
@@ -94,36 +105,28 @@ return {
       vim.api.nvim_create_user_command("MoltenRunVisualSmart", function()
         local start_l = vim.fn.line("'<")
         local end_l = vim.fn.line("'>")
+        local pos = vim.api.nvim_win_get_cursor(0)
         
-        local cells = _G.get_cells()
         local intersected = {}
-        for _, cell in ipairs(cells) do
-           if not (cell.e < start_l or cell.s > end_l) then
+        for _, cell in ipairs(_G.get_cells()) do
+           if not (cell.code_e < start_l or cell.code_s > end_l) then
              table.insert(intersected, cell)
            end
         end
 
         if #intersected > 0 then
-           vim.notify("🚀 Multi-Run Sélection : " .. #intersected .. " cellules validées", vim.log.levels.INFO)
-           local idx = 1
-           local function next_c()
-             if idx > #intersected then return end
-             local c = intersected[idx]
-             _G.molten_run_range(c.code_s, c.code_e)
-             idx = idx + 1
-             vim.defer_fn(next_c, 500)
-           end
-           next_c()
+           run_cells_async(intersected, "🚀 Sélection Smart", pos)
         else
            _G.molten_run_range(start_l, end_l)
+           vim.defer_fn(function() pcall(vim.api.nvim_win_set_cursor, 0, pos) end, 300)
         end
       end, { range = true })
 
       vim.api.nvim_create_user_command("MoltenDeleteAll", function()
         local pos = vim.api.nvim_win_get_cursor(0)
-        local cells = _G.get_cells()
-        for _, cell in ipairs(cells) do
-          pcall(vim.api.nvim_win_set_cursor, 0, {cell.code_s, 0})
+        for _, cell in ipairs(_G.get_cells()) do
+          -- Delete operation needs the cursor EXACTLY where output is anchored (code_e)
+          pcall(vim.api.nvim_win_set_cursor, 0, {cell.code_e, 0})
           vim.cmd("silent! MoltenDelete")
         end
         pcall(vim.api.nvim_win_set_cursor, 0, pos)
@@ -132,38 +135,26 @@ return {
 
       vim.api.nvim_create_user_command("MoltenRunAll", function()
         vim.cmd("MoltenDeleteAll")
-        local cells = _G.get_cells()
-        if #cells == 0 then return end
-        vim.notify("🚀 Exécution Globale (" .. #cells .. " cellules)...", vim.log.levels.INFO)
-        
-        local idx = 1
-        local function next_c()
-          if idx > #cells then 
-            vim.notify("✅ Run All Terminé", vim.log.levels.INFO) 
-            return 
-          end
-          local c = cells[idx]
-          _G.molten_run_range(c.code_s, c.code_e)
-          idx = idx + 1
-          vim.defer_fn(next_c, 500)
-        end
-        next_c()
+        local pos = vim.api.nvim_win_get_cursor(0)
+        run_cells_async(_G.get_cells(), "🚀 Run All", pos)
       end, {})
 
       vim.api.nvim_create_user_command("MoltenRunAbove", function()
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-        local cells = _G.get_cells()
-        for _, cell in ipairs(cells) do
-          if cell.e < cursor_line then _G.molten_run_range(cell.code_s, cell.code_e) end
+        local pos = vim.api.nvim_win_get_cursor(0)
+        local to_run = {}
+        for _, cell in ipairs(_G.get_cells()) do
+          if cell.e < pos[1] then table.insert(to_run, cell) end
         end
+        run_cells_async(to_run, "🚀 Run Above", pos)
       end, {})
 
       vim.api.nvim_create_user_command("MoltenRunBelow", function()
-        local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-        local cells = _G.get_cells()
-        for _, cell in ipairs(cells) do
-          if cell.s >= cursor_line then _G.molten_run_range(cell.code_s, cell.code_e) end
+        local pos = vim.api.nvim_win_get_cursor(0)
+        local to_run = {}
+        for _, cell in ipairs(_G.get_cells()) do
+          if cell.s >= pos[1] then table.insert(to_run, cell) end
         end
+        run_cells_async(to_run, "🚀 Run Below", pos)
       end, {})
     end,
     keys = {
