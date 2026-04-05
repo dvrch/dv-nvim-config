@@ -1,5 +1,5 @@
 return {
-  -- 1. Molten: Exécution & Output
+  -- 1. Molten (Preserved)
   {
     "benlubas/molten-nvim",
     event = { "BufRead *.ipynb", "BufNewFile *.ipynb" },
@@ -13,26 +13,37 @@ return {
     end,
   },
 
-  -- 2. Jupytext: Le Coeur du Pont (FIXED CRASH & UNIVERSAL)
+  -- 2. Jupytext (STABLE & CLEAN)
   {
     "GCBallesteros/jupytext.nvim",
     event = { "BufReadPre *.ipynb", "BufNewFile *.ipynb" },
     lazy = false, 
-    opts = {
-      style = "markdown",
-      output_extension = "md",
-      force_ft = "markdown",
-    },
+    opts = { style = "markdown", output_extension = "md", force_ft = "markdown" },
     config = function(_, opts)
-      -- PROTECTION : On s'assure que jupytext ne crash pas sur les métadonnées nil
-      local ok, jupy = pcall(require, "jupytext")
-      if ok then jupy.setup(opts) end
+      require("jupytext").setup(opts)
 
-      -- 🎨 DÉCORATEUR UNIVERSEL 4x4 (v2 : Multi-Langage & LaTeX)
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
-      local function decorate_cells(buf)
-        buf = buf or vim.api.nvim_get_current_buf()
+      -- 🧼 NETTOYEUR DE MARQUEURS (Pour restaurer les COULEURS)
+      local function sanitize_markers(buf)
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        local changed = false
+        for i, line in ipairs(lines) do
+          -- Transforme ```python vscode={"languageId": "bat"} en ```bat
+          local lang = line:match('languageId":%s*"([^"]+)"')
+          if lang then
+            lines[i] = "```" .. lang
+            changed = true
+          end
+        end
+        if changed then
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+        end
+      end
+
+      -- 🎨 DÉCORATEUR 4x4 DYNAMIQUE
+      function decorate_cells(buf)
+        buf = (buf == 0 or buf == nil) and vim.api.nvim_get_current_buf() or buf
         if not vim.api.nvim_buf_is_valid(buf) then return end
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
         
@@ -41,8 +52,7 @@ return {
 
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
         local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
-
-        local in_code_block = false
+        local in_code = false
 
         for i, line in ipairs(lines) do
           local function hide_line()
@@ -54,62 +64,54 @@ return {
             })
           end
 
-          -- 1. MARKDOWN REGIONS
-          if line:match("<!-- #endregion") or line:match("#endregion") then
-            hide_line()
-            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
-              virt_lines_above = false, priority = 2400 })
-          elseif line:match("<!-- #region") or line:match("#region") then
+          -- MARKDOWN
+          if line:match("<!-- #region") or line:match("#region") then
             hide_line()
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
               virt_lines_above = true, priority = 2400 })
-
-          -- 2. CODE BLOCKS (Multi-Langage & Metadata VSCode)
+          elseif line:match("<!-- #endregion") or line:match("#endregion") then
+            hide_line()
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+              virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
+              virt_lines_above = false, priority = 2400 })
+          
+          -- CODE
           elseif line:match("^%s*```") then
             hide_line()
-            if not in_code_block then
-              -- Détection fine du langage (Priorité Metadata VSCode si présente)
-              local lang = line:match('languageId":%s*"([^"]+)"') or line:match("^%s*```(%w+)") or "Python"
+            if not in_code then
+              local lang = line:match("^%s*```(%w+)") or "Python"
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "⚡ ╔══ CELLULE CODE (" .. lang .. ") ════════════════════════════════", "Special" } } },
                 virt_lines_above = true, priority = 2400 })
-              in_code_block = true
+              in_code = true
             else
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
                 virt_lines_above = false, priority = 2400 })
-              in_code_block = false
+              in_code = false
             end
           end
         end
       end
 
-      -- AUTOMATISMES
-      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWritePost", "TextChanged", "InsertLeave", "CursorMoved" }, {
+      -- AUTOMATISMES (RÉACTIVITÉ MAXIMALE)
+      vim.api.nvim_create_autocmd({ "BufWinEnter", "BufReadPost", "BufWritePost", "TextChanged", "CursorMoved" }, {
         pattern = "*.ipynb",
         callback = function(ev)
-          vim.defer_fn(function() if vim.api.nvim_buf_is_valid(ev.buf) then decorate_cells(ev.buf) end end, 10)
+          if ev.event == "BufReadPost" then sanitize_markers(ev.buf) end
+          vim.defer_fn(function() 
+            if vim.api.nvim_buf_is_valid(ev.buf) then decorate_cells(ev.buf) end 
+          end, 10)
         end,
       })
 
-      -- Forçage Format MD au rechargement
-      vim.api.nvim_create_autocmd("BufReadPre", {
-        pattern = "*.ipynb",
-        callback = function(ev)
-          vim.b[ev.buf].jupytext_fmt = vim.g.jupytext_user_fmt or "markdown"
-        end,
-      })
-
-      -- 🔄 SYNC INVERSE
+      -- SYNC & CLEANUP
       vim.api.nvim_create_autocmd("BufWritePost", {
-        pattern = "*.md",
-        callback = function(ev)
-          local ipynb = ev.match:gsub("%.md$", ".ipynb")
-          if vim.fn.filereadable(ipynb) == 1 then
-            vim.fn.jobstart({ "jupytext", "--update", "--to", "ipynb", ev.match })
-          end
+        pattern = "*.ipynb",
+        callback = function()
+          local base = vim.fn.expand("%:p:r")
+          os.remove(base .. ".md"); os.remove(base .. ".py")
         end,
       })
 
