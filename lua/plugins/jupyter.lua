@@ -149,6 +149,7 @@ return {
       -- ⌨️ RACCOURCIS
       vim.keymap.set("n", "<leader>jt", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
       vim.keymap.set("n", "<leader>jd", function() jd.toggle() end, { desc = "Toggle Décorations Cellules" })
+      vim.keymap.set("n", "<leader>jw", "<cmd>JSync<cr>", { desc = "Jupyter Sync (To IPYNB)" })
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
 
       -- ⚡ AUTOMATISME DÉCORATIONS
@@ -196,6 +197,18 @@ return {
       })
 
       vim.opt.autoread = true
+      vim.api.nvim_create_user_command("JSync", function()
+        local path = vim.api.nvim_buf_get_name(0)
+        local ext = path:match("%.(%w+)$")
+        if ext == "md" or ext == "txt" then
+          local ipynb = path:gsub("%.%w+$", ".ipynb")
+          -- On s'assure que jupytext peut traiter le fichier (force conversion vs ipynb)
+          vim.fn.system({ "jupytext", "--update", "--set-kernel", "python3_nvim", "--to", "ipynb", path })
+          vim.notify("🔄 IPYNB Synchronisé : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
+        else
+          vim.notify("🔴 JSync possible uniquement sur .md ou .txt", vim.log.levels.ERROR)
+        end
+      end, {})
       vim.api.nvim_create_user_command("JDecorateToggle", function() jd.toggle() end, {})
       vim.api.nvim_create_user_command("JDecorate", function() jd.decorate() end, {})
     end,
