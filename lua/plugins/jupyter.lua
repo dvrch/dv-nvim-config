@@ -102,8 +102,9 @@ return {
       vim.api.nvim_create_user_command("JSync", function()
         local path = vim.api.nvim_buf_get_name(0)
         if path:match("%.md$") then
+          local ipynb = path:gsub("%.md$", ".ipynb")
           vim.fn.system({ "jupytext", "--update", "--to", "ipynb", path })
-          vim.notify("🔄 IPYNB Synchronisé.", vim.log.levels.INFO)
+          vim.notify("🔄 IPYNB Synchronisé : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
         end
       end, {})
 
