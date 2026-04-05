@@ -152,69 +152,87 @@ return {
       vim.keymap.set("n", "<leader>jv", "<cmd>JupyterToggleView<cr>", { desc = "Jupyter: Bascule MD/PY" })
       vim.keymap.set("n", "<leader>ip", ":cd /home/kd/scripts | e agent_brain.ipynb<CR>", { desc = "🚀 Pont Agent" })
 
-      -- 🎨 DÉCORATIONS "GHOST" — 2 BALISES PAR CELLULE, TOUJOURS VISIBLES
+      -- 🎨 DÉCORATIONS "GHOST" — SYSTÈME 4x4 (2 BALISES PAR BLOC + MASQUAGE)
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
       local function decorate_cells(buf)
         buf = buf or vim.api.nvim_get_current_buf()
         if not vim.api.nvim_buf_is_valid(buf) then return end
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
+        
+        -- On force le concealment pour cacher les marqueurs
+        vim.opt_local.conceallevel = 2
+        vim.opt_local.concealcursor = "nvic"
 
         local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
-        -- ✅ DÉTECTION FIABLE : on scan le contenu réel, pas une variable
+        -- Détection format (scan rapide)
         local is_py = false
         for _, l in ipairs(lines) do
-          if l:match("^# %%%%") or l:match("^# %% ") then
-            is_py = true; break
-          end
+          if l:match("^# %%%%") or l:match("^# %% ") then is_py = true; break end
         end
 
         for i, line in ipairs(lines) do
+          -- FONCTION POUR CACHER LA LIGNE TECHNIQUE
+          local function hide_line()
+            vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
+              virt_text = { { string.rep(" ", #line), "Conceal" } },
+              virt_text_pos = "overlay",
+              conceal = "",
+              priority = 2500,
+            })
+          end
+
           if not is_py then
-            -- ═══════ VUE MARKDOWN ═══════
+            -- ══════════════ VUE MARKDOWN (DESIGN) ══════════════
+            -- 1. Cellule Markdown
             if line:find("#region", 1, true) then
+              hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
-                virt_lines_above = true, priority = 2000 })
-
+                virt_lines_above = true, priority = 2400 })
             elseif line:find("#endregion", 1, true) then
+              hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
-                virt_lines_above = false, priority = 2000 })
+                virt_lines_above = false, priority = 2400 })
 
+            -- 2. Cellule Code
             elseif line:find("```python", 1, true) then
+              hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
-                virt_lines_above = true, priority = 2000 })
-
+                virt_lines = { { { "⚡ ╔══ CELLULE CODE (Python) ══════════════════════════════════════╗", "Special" } } },
+                virt_lines_above = true, priority = 2400 })
             elseif line == "```" then
+              hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
-                virt_lines_above = false, priority = 2000 })
+                virt_lines_above = false, priority = 2400 })
             end
 
           else
-            -- ═══════ VUE PYTHON ═══════
+            -- ══════════════ VUE PYTHON (EXPERT) ══════════════
             if line:find("# %% [markdown]", 1, true) then
+              hide_line()
               if i > 1 then
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                   virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
-                  virt_lines_above = true, priority = 2000 })
+                  virt_lines_above = true, priority = 2400 })
               end
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
-                virt_lines_above = false, priority = 1999 })
+                virt_lines_above = false, priority = 2399 })
 
             elseif line:find("# %%", 1, true) and not line:find("markdown", 1, true) then
+              hide_line()
               if i > 1 then
                 vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                   virt_lines = { { { "   ╚══ FIN CELLULE ═══════════════════════════════════════════════╝", "Comment" } } },
-                  virt_lines_above = true, priority = 2000 })
+                  virt_lines_above = true, priority = 2400 })
               end
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "⚡ ╔══ CELLULE CODE ═══════════════════════════════════════════════╗", "Special" } } },
-                virt_lines_above = false, priority = 1999 })
+                virt_lines = { { { "⚡ ╔══ CELLULE CODE (Python) ══════════════════════════════════════╗", "Special" } } },
+                virt_lines_above = false, priority = 2399 })
             end
           end
         end
