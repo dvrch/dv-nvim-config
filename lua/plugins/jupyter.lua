@@ -196,7 +196,7 @@ return {
   },
 
   -- 2. Jupytext : Config stable Markdown (Avec Décorateurs ✨)
-  {scm-history-item:/home/kd/.config/nvim?%7B%22repositoryId%22%3A%22scm1%22%2C%22historyItemId%22%3A%22db84420fc41afa30d8ebff8ef9fa88a9d388bd52%22%2C%22historyItemParentId%22%3A%22c1bc9386af310e2a2814a9e7c85249197866b311%22%2C%22historyItemDisplayId%22%3A%22db84420%22%7D
+  {
     "GCBallesteros/jupytext.nvim",
     event = { "User LoadHeavy" },
     lazy = true,
