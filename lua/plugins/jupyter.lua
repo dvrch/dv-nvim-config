@@ -160,7 +160,7 @@ return {
         if not vim.api.nvim_buf_is_valid(buf) then return end
         vim.api.nvim_buf_clear_namespace(buf, ns_cell, 0, -1)
         
-        -- On force le concealment pour cacher les marqueurs
+        -- On force le concealment pour cacher les marqueurs techniques
         vim.opt_local.conceallevel = 2
         vim.opt_local.concealcursor = "nvic"
 
@@ -173,37 +173,41 @@ return {
         end
 
         for i, line in ipairs(lines) do
-          -- FONCTION POUR CACHER LA LIGNE TECHNIQUE
+          -- FONCTION POUR RENDRE LA LIGNE TECHNIQUE INVISIBLE
           local function hide_line()
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_text = { { string.rep(" ", #line), "Conceal" } },
+              virt_text = { { " ", "NonText" } }, -- Un seul espace suffit si overlay
               virt_text_pos = "overlay",
-              conceal = "",
+              line_hl_group = "Conceal", -- Utilise la couleur de masquage
+              conceal = " ", -- Cache le texte original
               priority = 2500,
             })
           end
 
           if not is_py then
             -- ══════════════ VUE MARKDOWN (DESIGN) ══════════════
-            -- 1. Cellule Markdown
-            if line:find("#region", 1, true) then
+            
+            -- 1. Cellules Markdown (Régions)
+            if line:find("#region", 1, true) or line:find("<!--", 1, true) then
               hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "📝 ╔══ CELLULE MARKDOWN ══════════════════════════════════════════╗", "String" } } },
                 virt_lines_above = true, priority = 2400 })
-            elseif line:find("#endregion", 1, true) then
+            
+            elseif line:find("#endregion", 1, true) or line:find("-->", 1, true) then
               hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE MARKDOWN ═════════════════════════════════════╝", "Comment" } } },
                 virt_lines_above = false, priority = 2400 })
 
-            -- 2. Cellule Code
-            elseif line:find("```python", 1, true) then
+            -- 2. Cellules Code (Backticks)
+            elseif line:match("^%s*```python") then
               hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "⚡ ╔══ CELLULE CODE (Python) ══════════════════════════════════════╗", "Special" } } },
                 virt_lines_above = true, priority = 2400 })
-            elseif line == "```" then
+            
+            elseif line:match("^%s*```$") or (line:match("^%s*```") and not line:find("python")) then
               hide_line()
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
                 virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
