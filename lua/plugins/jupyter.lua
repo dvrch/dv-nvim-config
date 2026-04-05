@@ -17,17 +17,25 @@ return {
       -- FONCTION OBLIGATOIRE : Exécuter une plage avec affichage forcé (via Visual Mode)
       _G.molten_run_range = function(start_l, end_l)
         if start_l > end_l then return end
-        -- Sauvegarde de la position du curseur
+        
+        -- 1. Sauvegarde de la position originale
         local pos = vim.api.nvim_win_get_cursor(0)
-        -- Sélectionner visuellement les lignes exactes (MoltenEvaluateVisual a besoin des marques V)
+        
+        -- 2. Création SYNCHRONE des marques visuelles '< et '>
+        -- On évite api.nvim_feedkeys(esc) car cela ferme violemment le popup 
+        -- "Select Kernel" de Molten si le kernel n'est pas encore initialisé !
         vim.api.nvim_win_set_cursor(0, {start_l, 0})
         vim.cmd("normal! V")
-        vim.api.nvim_win_set_cursor(0, {end_l, 0})
+        if end_l > start_l then
+            vim.api.nvim_win_set_cursor(0, {end_l, 0})
+        end
+        vim.cmd("execute 'normal! \\<Esc>'")
+        
+        -- 3. Appel de Molten (Il va lire les marques '< et '> laissées)
+        -- Si aucun kernel n'est actif, le prompt UI apparaîtra de manière stable !
         vim.cmd("MoltenEvaluateVisual")
-        -- Quitter le mode visuel
-        local esc = vim.api.nvim_replace_termcodes("<Esc>", true, false, true)
-        vim.api.nvim_feedkeys(esc, "x", false)
-        -- Restaurer le curseur
+        
+        -- 4. Restaurer le curseur
         pcall(vim.api.nvim_win_set_cursor, 0, pos)
       end
 
