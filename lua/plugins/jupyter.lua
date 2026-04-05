@@ -21,9 +21,14 @@ return {
     config = function(_, opts)
       require("jupytext").setup(opts)
 
+      -- 🎨 PALETTE ELITE (Couleurs Vibrantes)
+      vim.api.nvim_set_hl(0, "JupyterMdHeader", { fg = "#ffcc00", bold = true }) -- Jaune Gold
+      vim.api.nvim_set_hl(0, "JupyterCodeHeader", { fg = "#ff6600", bold = true }) -- Orange Pur
+      vim.api.nvim_set_hl(0, "JupyterFooter", { fg = "#555555", italic = true }) -- Gris discret
+
       local ns_cell = vim.api.nvim_create_namespace("jupyter_ghost_lines")
 
-      -- 🎨 DÉCORATEUR ELITE V3.1 (IPYNB & MD)
+      -- 🎨 DÉCORATEUR ELITE V3.2 (Look Premium & Effectivité Maximale)
       function do_decorate(buf)
         buf = (buf == 0 or buf == nil) and vim.api.nvim_get_current_buf() or buf
         if not vim.api.nvim_buf_is_valid(buf) then return end
@@ -42,58 +47,73 @@ return {
         local in_code = false
 
         for i, line in ipairs(lines) do
-          -- Masquage intelligent (sauf sous le curseur)
+          -- Masquage Overlay (Adieu "Ghost lines")
           local function hide_line()
             if i == cursor_line then return end 
-            -- On utilise le masquage par virt_text_pos='overlay' pour cacher le texte reel
             local mask = string.rep(" ", vim.fn.strdisplaywidth(line))
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
               virt_text = { { mask, "Conceal" } },
-              virt_text_pos = "overlay", priority = 2500,
+              virt_text_pos = "overlay", priority = 5000,
             })
           end
 
-          -- 1. DÉTECTION DES RÉGIONS (Markdown Headers ou Tags)
+          -- 1. SECTIONS MARKDOWN / HEADERS
           if line:match("^#+ ") or line:match("<!-- #region") or line:match("#region") then
             hide_line()
             local title = line:gsub("^#+%s*", ""):gsub("<!%-%-%s*", ""):gsub("%s*%-%->", "")
-            title = title ~= "" and title or "MARKDOWN"
+            title = title ~= "" and title:upper() or "MARKDOWN"
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { { "📝 ╔══ " .. title:upper() .. " ══════════════════════════════════════════╗", "String" } } },
-              virt_lines_above = true, priority = 2400 })
+              virt_lines = { { 
+                { "📝 ╔══ # " .. title .. " ", "JupyterMdHeader" },
+                { string.rep("═", math.max(60 - #title, 5)), "JupyterMdHeader" },
+                { "╗", "JupyterMdHeader" }
+              } },
+              virt_lines_above = true, priority = 4900 })
           elseif line:match("<!-- #endregion") or line:match("#endregion") then
             hide_line()
             vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-              virt_lines = { { { "   ╚══ FIN SECTION ══════════════════════════════════════════════╝", "Comment" } } },
-              virt_lines_above = false, priority = 2400 })
+              virt_lines = { { 
+                { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+                { " FIN SECTION ", "JupyterFooter" }, 
+                { string.rep("═", 49), "JupyterFooter" },
+                { "╝", "JupyterFooter" }
+              } },
+              virt_lines_above = false, priority = 4900 })
           
-          -- 2. DÉTECTION DES BLOCS DE CODE (Standard ou Magics ou VSCode Extra)
+          -- 2. BLOCS DE CODE (Standard / Magics / VSCode)
           elseif line:match("^%s*```") or line:match("^%%%%%w+") then
             hide_line()
             if not in_code then
-              -- Capture complexe : languageId ou nom simple
               local lang = line:match('languageId": "([^"]+)"') 
                            or line:match("^%s*```(%w+)") 
                            or line:match("^%%%%(%w+)") 
                            or "Python"
-              
-              lang = lang:gsub("^%w", string.upper) -- Majuscule
+              lang = lang:gsub("^%w", string.upper)
               
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "⚡ ╔══ CELLULE CODE (" .. lang .. ") ════════════════════════════════", "Special" } } },
-                virt_lines_above = true, priority = 2400 })
+                virt_lines = { { 
+                  { "⚡ ╔══ [ " .. lang .. " ] ", "JupyterCodeHeader" },
+                  { string.rep("═", 50), "JupyterCodeHeader" },
+                  { "╗", "JupyterCodeHeader" }
+                } },
+                virt_lines_above = true, priority = 4900 })
               in_code = true
             else
               vim.api.nvim_buf_set_extmark(buf, ns_cell, i - 1, 0, {
-                virt_lines = { { { "   ╚══ FIN CELLULE CODE ══════════════════════════════════════════╝", "Comment" } } },
-                virt_lines_above = false, priority = 2400 })
+                virt_lines = { { 
+                  { "   ╚" .. string.rep("═", 5), "JupyterFooter" },
+                  { " FIN CELLULE CODE ", "JupyterFooter" },
+                  { string.rep("═", 45), "JupyterFooter" },
+                  { "╝", "JupyterFooter" }
+                } },
+                virt_lines_above = false, priority = 4900 })
               in_code = false
             end
           end
         end
       end
 
-      -- ⚡ TRIGGERS ULTRA-RÉACTIFS (TOUS ÉVÉNEMENTS)
+      -- ⚡ TRIGGERS (Auto-Refresh)
       vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "BufWritePost", "CursorMoved", "ModeChanged", "TextChanged" }, {
         pattern = "*",
         callback = function(ev)
@@ -104,27 +124,24 @@ return {
         end,
       })
 
-      -- 🔄 COMMANDES
+      -- 🔄 COMMANDES & SYNC
       vim.api.nvim_create_user_command("JDecor", function() do_decorate() end, {})
       vim.api.nvim_create_user_command("JSync", function()
         local path = vim.api.nvim_buf_get_name(0)
         if path:match("%.md$") then
           local ipynb = path:gsub("%.md$", ".ipynb")
-          -- Utilisation de --set-kernel pour forcer une kernelspec valide (évite le crash kernelspec nil)
           vim.fn.system({ "jupytext", "--update", "--set-kernel", "python3_nvim", "--to", "ipynb", path })
-          vim.notify("🔄 IPYNB Synchronisé (Kernelspec Fixe) : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
+          vim.notify("🔄 IPYNB Synchronisé : " .. vim.fn.fnamemodify(ipynb, ":t"), vim.log.levels.INFO)
         end
       end, {})
 
-      -- 🚀 SYNCHRONISATION AUTOMATIQUE (MD -> IPYNB)
       vim.api.nvim_create_autocmd("BufWritePost", {
         pattern = "*.md",
         callback = function() vim.cmd("JSync") end,
       })
 
-      -- Raccourci expert
       vim.keymap.set("n", "<leader>jd", "<cmd>JDecor<cr>", { desc = "Rafraîchir les Cadres" })
-      vim.keymap.set("n", "<leader>js", "<cmd>JSync<cr>", { desc = "Sync Manuelle IPYNB" })
+      vim.keymap.set("n", "<leader>js", "<cmd>JSync<cr>", { desc = "Sync Automatique IPYNB" })
     end,
   },
 }
