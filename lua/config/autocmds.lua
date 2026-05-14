@@ -47,6 +47,12 @@ M.setup = function()
   vim.keymap.set("n", "<leader>ss", ":RunStartupSequence<CR>", {
     desc = "Run custom startup sequence",
   })
+
+  -- Sauvegarde automatique quand on quitte un buffer ou qu'on perd le focus (onglet/fenêtre)
+  api.nvim_create_autocmd({ "FocusLost", "BufLeave", "WinLeave" }, {
+    pattern = "*",
+    command = "silent! wa",
+  })
 end
 
 M.setup()
