@@ -6,6 +6,19 @@ return {
   },
   opts = {
     adapters = {
+      -- Ollama (local)
+      ollama = function()
+        return require("codecompanion.adapters").extend("ollama", {
+          name = "ollama",
+          schema = {
+            model = {
+              default = "qwen3:latest",
+            },
+          },
+        })
+      end,
+
+      -- OpenRouter (cloud)
       openrouter = function()
         return require("codecompanion.adapters").extend("openai", {
           name = "openrouter",
@@ -20,19 +33,38 @@ return {
           },
         })
       end,
+
+      -- Google Gemini
+      gemini = function()
+        return require("codecompanion.adapters").extend("gemini", {
+          name = "gemini",
+          env = {
+            api_key = vim.env.GOOGLE_API_KEY,
+          },
+          schema = {
+            model = {
+              default = "gemini-2.5-flash",
+            },
+          },
+        })
+      end,
     },
+
     strategies = {
       chat = {
-        adapter = "openrouter",
+        adapter = "ollama",
       },
       inline = {
-        adapter = "openrouter",
+        adapter = "ollama",
       },
     },
   },
+
   keys = {
-    { "<leader>ic", "<cmd>CodeCompanionChat<cr>", desc = "IA: Chat OpenRouter" },
-    { "<leader>ia", "<cmd>CodeCompanionActions<cr>", desc = "IA: Actions IA" },
-    { "<leader>ip", "<cmd>CodeCompanion<cr>", desc = "IA: Prompt OpenRouter" },
+    { "<leader>cc", "<cmd>CodeCompanionChat<cr>", desc = "IA: Chat" },
+    { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "IA: Chat Ollama" },
+    { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "IA: Chat OpenRouter" },
+    { "<leader>cg", "<cmd>CodeCompanionChat gemini<cr>", desc = "IA: Chat Gemini" },
+    { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "IA: Actions" },
   },
 }

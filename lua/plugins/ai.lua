@@ -74,33 +74,10 @@ return {
         end, {})
     end,
     keys = {
-      { "<leader>io", ":Gen<cr>", desc = "IA: Ollama Actions", mode = { "n", "v" } },
+      { "<leader>io", ":Gen<cr>", desc = "IA: Ollama Gen", mode = { "n", "v" } },
       { "<leader>im", "<cmd>IASelectModel<cr>", desc = "IA: Choisir modèle Ollama" },
-      { "<leader>it", "<cmd>IAToggleCopilot<cr>", desc = "IA: Basculer Copilot Réel" },
-      { "<leader>ic", "<cmd>CodeCompanionChat<cr>", desc = "IA: Antigravity Chat" },
-      { "<leader>is", "<cmd>CodeCompanionCombo<cr>", desc = "IA: Switch Brain" },
-      { "<leader>ip", "<cmd>edit /home/kd/scripts/agent_brain.ipynb<cr>", desc = "IA: Pont Agent (.ipynb)" },
-      { "<leader>ih", "<cmd>IAHelp<cr>", desc = "IA: Aide Concise" },
+      { "<leader>it", "<cmd>IAToggleCopilot<cr>", desc = "IA: Basculer Copilot" },
     },
   },
 
-  -- 💬 COPILOT CHAT (Side Window)
-  {
-    "CopilotC-Nvim/CopilotChat.nvim",
-    branch = "main",
-    dependencies = {
-      { "zbirenbaum/copilot.lua" },
-      { "nvim-lua/plenary.nvim" },
-    },
-    opts = {
-      window = {
-        layout = "float",
-        width = 0.8,
-        height = 0.8,
-      },
-    },
-    keys = {
-      { "<leader>ia", "<cmd>CopilotChatToggle<cr>", desc = "IA: Chat Copilot" },
-    },
-  },
 }
