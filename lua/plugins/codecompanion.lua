@@ -33,21 +33,6 @@ return {
           },
         })
       end,
-
-      -- Google Gemini
-      gemini = function()
-        return require("codecompanion.adapters").extend("gemini", {
-          name = "gemini",
-          env = {
-            api_key = vim.env.GOOGLE_API_KEY,
-          },
-          schema = {
-            model = {
-              default = "gemini-2.5-flash",
-            },
-          },
-        })
-      end,
     },
 
     strategies = {
@@ -64,7 +49,6 @@ return {
     { "<leader>cc", "<cmd>CodeCompanionChat<cr>", desc = "IA: Chat" },
     { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "IA: Chat Ollama" },
     { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "IA: Chat OpenRouter" },
-    { "<leader>cg", "<cmd>CodeCompanionChat gemini<cr>", desc = "IA: Chat Gemini" },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "IA: Actions" },
   },
 }
