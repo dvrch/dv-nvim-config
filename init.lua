@@ -51,3 +51,14 @@ vim.api.nvim_create_user_command("CopyPath", function()
   vim.fn.setreg("+", path)
   vim.notify("Chemin copié: " .. path)
 end, { desc = "Copie le chemin absolu du fichier actuel" })
+
+vim.api.nvim_create_user_command("RenderANSI", function()
+  vim.cmd("%s/\\e\\[[0-9;]*m//g") -- Nettoyer ANSI si rien ne marche (secours)
+  -- Ou utiliser le plugin si disponible.
+end, {})
+vim.api.nvim_create_autocmd("BufEnter", {
+  pattern = "git-log*",
+  callback = function()
+    vim.cmd("setlocal filetype=ansi")
+  end,
+})

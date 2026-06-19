@@ -35,3 +35,12 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHo
     end
 })
 
+
+-- --- Configuration PowerShell pour Neovim ---
+vim.opt.shell = "/usr/bin/zsh"
+vim.opt.shellcmdflag = "-c"
+vim.opt.shellredir = ">%%s 2>&1"
+vim.opt.shellpipe = "2>&1 | tee %%s"
+vim.opt.shellquote = ""
+vim.opt.shellxquote = ""
+vim.env.TERM = "xterm-256color"
