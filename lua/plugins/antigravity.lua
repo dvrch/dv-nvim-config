@@ -42,6 +42,12 @@ return {
       end, {})
 
       vim.keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionActions<cr>", { desc = "IA: Antigravity Actions" })
+
+      -- Ouvrir agy directement dans un terminal
+      vim.keymap.set("n", "<leader>ia", function()
+        vim.cmd("terminal agy")
+        vim.cmd("startinsert")
+      end, { desc = "IA: Terminal agy" })
     end,
   },
 }
