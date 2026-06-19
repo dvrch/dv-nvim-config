@@ -5,6 +5,12 @@ return {
     "nvim-treesitter/nvim-treesitter",
   },
   opts = {
+    adapters = {
+      http = {
+        openrouter = "openrouter",
+      },
+      acp = {},
+    },
     strategies = {
       chat = {
         adapter = "openrouter",
@@ -37,6 +43,7 @@ return {
   },
 
   config = function(_, opts)
+    vim.env.OPENROUTER_API_KEY = "sk-or-v1-REMOVED"
     require("codecompanion").setup(opts)
     local openrouter = require("codecompanion.adapters.http.openrouter")
     openrouter.schema.model.default = "openrouter/free"
