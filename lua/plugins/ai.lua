@@ -48,35 +48,4 @@ return {
     end,
   },
 
-  -- 🦙 OLLAMA (Local AI / Gen)
-  {
-    "David-Kunz/gen.nvim",
-    opts = {
-      model = "llama3.2:3b-instruct-q4_K_S", -- Ton nouveau modèle par défaut !
-      display_mode = "float",
-    },
-    config = function(_, opts)
-        require("gen").setup(opts)
-        
-        -- FUNC: Sélecteur de modèle Ollama interactif
-        vim.api.nvim_create_user_command("IASelectModel", function()
-          local handle = io.popen("ollama list | awk 'NR>1 {print $1}'")
-          local result = handle:read("*a")
-          handle:close()
-          local models = vim.split(result, "\n", { trimempty = true })
-          
-          vim.ui.select(models, { prompt = "🦙 Choisir le modèle Ollama :" }, function(choice)
-            if choice then
-              require("gen").model = choice
-              vim.notify("Modèle Ollama réglé sur : " .. choice .. " ✅", vim.log.levels.INFO)
-            end
-          end)
-        end, {})
-    end,
-    keys = {
-      { "<leader>io", ":Gen<cr>", desc = "IA: Ollama Gen", mode = { "n", "v" } },
-      { "<leader>it", "<cmd>IAToggleCopilot<cr>", desc = "IA: Basculer Copilot" },
-    },
-  },
-
 }

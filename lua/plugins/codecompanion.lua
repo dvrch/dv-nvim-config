@@ -7,7 +7,7 @@ return {
   opts = {
     strategies = {
       chat = {
-        adapter = "ollama",
+        adapter = "openrouter",
         keymaps = {
           send = { modes = { n = "<CR>", i = "<C-CR>" } },
           close = { modes = { n = "q", i = "<C-c>" } },
@@ -17,7 +17,7 @@ return {
         },
       },
       inline = {
-        adapter = "ollama",
+        adapter = "openrouter",
       },
     },
 
@@ -43,7 +43,6 @@ return {
   end,
 
   keys = {
-    { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "Chat Ollama" },
     { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "Chat OpenRouter" },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA" },
     { "<leader>aa", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA", mode = { "n", "v" } },
