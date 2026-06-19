@@ -75,7 +75,6 @@ return {
     end,
     keys = {
       { "<leader>io", ":Gen<cr>", desc = "IA: Ollama Gen", mode = { "n", "v" } },
-      { "<leader>im", "<cmd>IASelectModel<cr>", desc = "IA: Choisir modèle Ollama" },
       { "<leader>it", "<cmd>IAToggleCopilot<cr>", desc = "IA: Basculer Copilot" },
     },
   },
