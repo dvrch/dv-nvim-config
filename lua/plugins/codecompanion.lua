@@ -47,16 +47,14 @@ return {
     display = {
       chat = {
         window = {
-          layout = "float",
-          width = 0.8,
-          height = 0.8,
+          layout = "vertical",
+          width = 0.3,
         },
       },
       agent = {
         window = {
-          layout = "float",
-          width = 0.8,
-          height = 0.8,
+          layout = "vertical",
+          width = 0.3,
         },
       },
     },
