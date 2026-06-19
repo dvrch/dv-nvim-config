@@ -7,9 +7,19 @@ return {
   opts = {
     adapters = {
       http = {
+        opts = {
+          show_presets = false,
+          allow_insecure = false,
+          cache_models_for = 1800,
+          show_model_choices = true,
+        },
         openrouter = "openrouter",
       },
-      acp = {},
+      acp = {
+        opts = {
+          show_presets = false,
+        },
+      },
     },
     strategies = {
       chat = {
@@ -25,6 +35,13 @@ return {
       inline = {
         adapter = "openrouter",
       },
+      agent = {
+        adapter = "openrouter",
+        keymaps = {
+          send = { modes = { n = "<CR>", i = "<C-CR>" } },
+          close = { modes = { n = "q", i = "<C-c>" } },
+        },
+      },
     },
 
     display = {
@@ -35,6 +52,21 @@ return {
           height = 0.8,
         },
       },
+      agent = {
+        window = {
+          layout = "float",
+          width = 0.8,
+          height = 0.8,
+        },
+      },
+    },
+
+    slash_commands = {
+      ["buffer"] = { opts = { provider = "buffer" } },
+      ["file"] = { opts = { provider = "file" } },
+      ["help"] = { opts = { provider = "help" } },
+      ["tools"] = { opts = { provider = "tools" } },
+      ["symbols"] = { opts = { provider = "symbols" } },
     },
 
     opts = {
@@ -51,7 +83,9 @@ return {
 
   keys = {
     { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "Chat OpenRouter" },
+    { "<leader>ci", "<cmd>CodeCompanionInline<cr>", desc = "Inline IA", mode = { "n", "v" } },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA" },
+    { "<leader>cg", "<cmd>CodeCompanionAgent<cr>", desc = "Agent IA" },
     { "<leader>aa", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA", mode = { "n", "v" } },
   },
 }
