@@ -21,7 +21,7 @@ return {
       vim.g.db_ui_winwidth = 40
       
       -- Emplacement des sauvegardes de requêtes pour l'historique
-      vim.g.db_ui_save_location = vim.fn.stdpath("config") .. require("os").getenv("HOME") .. "/.local/share/db_ui"
+      vim.g.db_ui_save_location = vim.fn.stdpath("data") .. "/db_ui"
     end,
     config = function()
       -- Auto-complétion SQL via vim-dadbod-completion
