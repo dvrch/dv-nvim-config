@@ -182,7 +182,7 @@ return {
       end, {})
     end,
     keys = {
-      { "<leader>mk", ":MoltenInit python3<cr>", desc = "Init Kernel" },
+      { "<leader>jk", ":MoltenInit python3<cr>", desc = "Init Kernel" },
       { "<leader>jc", ":MoltenRunCell<cr>", desc = "Execute Cell" },
       { "<leader>jx", ":MoltenEvaluateLine<cr>", desc = "Execute Line" },
       { "<leader>jv", ":<C-u>MoltenRunVisualSmart<cr>", mode = "v", desc = "Execute Smart Selection" },
