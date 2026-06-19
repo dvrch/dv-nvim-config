@@ -1,11 +1,5 @@
 -- Début du fichier
-vim.g.python3_host_prog = "/home/kd/.config/nvim/nvim-python-venv/bin/python"
 package.path = package.path .. ";" .. vim.fn.stdpath("config") .. "/lua/?.lua"
-
--- Configuration Pieces AVANT le chargement des plugins
-vim.fn.setenv("PIECES_OS_PORT", "39300")
-vim.g.PIECES_OS_PORT = 39300
-vim.g.gemini_autolaunch = false -- Désactivé par défaut
 
 -- bootstrap lazy.nvim, LazyVim and your plugins
 require("config.lazy")
@@ -20,8 +14,6 @@ require("config.rn_terminal")
 require("config.spell")
 require("custom_syntax")
 require("config.autocmds")
-
-require("pieces_help")
 
 -- Options d'affichage
 vim.opt.termguicolors = true
