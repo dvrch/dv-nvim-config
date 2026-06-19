@@ -5,18 +5,6 @@ return {
     "nvim-treesitter/nvim-treesitter",
   },
   opts = {
-    adapters = {
-      http = {
-        openrouter = {
-          schema = {
-            model = {
-              default = "deepseek/deepseek-chat-v3-0324:free",
-            },
-          },
-        },
-      },
-    },
-
     strategies = {
       chat = {
         adapter = "ollama",
@@ -47,6 +35,12 @@ return {
       log_level = "ERROR",
     },
   },
+
+  config = function(_, opts)
+    require("codecompanion").setup(opts)
+    local openrouter = require("codecompanion.adapters.http.openrouter")
+    openrouter.schema.model.default = "openrouter/free"
+  end,
 
   keys = {
     { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "Chat Ollama" },
