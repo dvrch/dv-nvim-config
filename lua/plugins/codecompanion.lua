@@ -139,10 +139,10 @@ return {
   end,
 
   keys = {
-    -- Chat adapters (HTTP)
-    { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "Chat OpenRouter" },
-    { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "Chat Ollama (local)" },
-    { "<leader>cv", "<cmd>CodeCompanionChat vibe<cr>", desc = "Chat Vibe (local)" },
+    -- Chat adapters (HTTP) — must use adapter=name syntax, see commands/init.lua
+    { "<leader>cr", "<cmd>CodeCompanionChat adapter=openrouter<cr>", desc = "Chat OpenRouter" },
+    { "<leader>co", "<cmd>CodeCompanionChat adapter=ollama<cr>", desc = "Chat Ollama (local)" },
+    { "<leader>cv", "<cmd>CodeCompanionChat adapter=vibe<cr>", desc = "Chat Vibe (local)" },
 
     -- CLI agents
     { "<leader>cpc", function()
