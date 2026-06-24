@@ -168,6 +168,7 @@ return {
 
     -- General
     { "<leader>ci", "<cmd>CodeCompanionInline<cr>", desc = "Inline IA", mode = { "n", "v" } },
+    { "<leader>cT", "<cmd>IAToggleCopilot<cr>", desc = "Toggle Copilot (on/off)" },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA" },
     { "<leader>cg", "<cmd>CodeCompanionAgent<cr>", desc = "Agent IA" },
     { "<leader>cl", "<cmd>CodeCompanionChatList<cr>", desc = "Liste des chats" },
