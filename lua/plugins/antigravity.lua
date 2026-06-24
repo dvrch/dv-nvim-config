@@ -3,7 +3,6 @@ return {
     -- Dépendances pour les keymaps CodeCompanion
     "olimorris/codecompanion.nvim",
     keys = {
-      { "<leader>aa", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA", mode = { "n", "v" } },
       { "<leader>ia", function()
         vim.cmd("terminal agy")
         vim.cmd("startinsert")

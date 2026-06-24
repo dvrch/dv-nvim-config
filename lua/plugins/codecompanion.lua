@@ -15,12 +15,10 @@ return {
         },
         openrouter = "openrouter",
         ollama = "ollama",
-        copilot = "copilot",
-        mistral = "mistral",
         vibe = function()
           return require("codecompanion.adapters").extend("openai_compatible", {
             name = "vibe",
-            formatted_name = "Vibe Mistral",
+            formatted_name = "Vibe",
             env = {
               url = os.getenv("VIBE_URL") or "http://localhost:1234",
               api_key = os.getenv("VIBE_API_KEY") or "not-needed",
@@ -64,6 +62,25 @@ return {
       },
     },
 
+    interactions = {
+      cli = {
+        opts = {
+          auto_insert = true,
+        },
+        agents = {
+          copilot = {
+            cmd = "gh",
+            args = { "copilot" },
+            description = "GitHub Copilot CLI",
+          },
+          antigravity = {
+            cmd = "agy",
+            description = "Antigravity CLI",
+          },
+        },
+      },
+    },
+
     display = {
       chat = {
         window = {
@@ -94,6 +111,11 @@ return {
 
   config = function(_, opts)
     vim.env.OPENROUTER_API_KEY = "sk-or-v1-REMOVED"
+
+    opts.interactions = opts.interactions or {}
+    opts.interactions.cli = opts.interactions.cli or {}
+    opts.interactions.cli.agent = "copilot"
+
     require("codecompanion").setup(opts)
     local openrouter = require("codecompanion.adapters.http.openrouter")
     openrouter.schema.model.default = "openrouter/free"
@@ -129,11 +151,34 @@ return {
   end,
 
   keys = {
+    -- Chat adapters (HTTP)
     { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "Chat OpenRouter" },
     { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "Chat Ollama (local)" },
-    { "<leader>cc", "<cmd>CodeCompanionChat copilot<cr>", desc = "Chat Copilot" },
-    { "<leader>cm", "<cmd>CodeCompanionChat mistral<cr>", desc = "Chat Mistral" },
-    { "<leader>cv", "<cmd>CodeCompanionChat vibe<cr>", desc = "Chat Vibe Mistral (local)" },
+    { "<leader>cv", "<cmd>CodeCompanionChat vibe<cr>", desc = "Chat Vibe (local)" },
+
+    -- CLI agents
+    { "<leader>cpc", function()
+      require("codecompanion").toggle_cli({ agent = "copilot" })
+    end, desc = "Copilot CLI", mode = { "n", "v" } },
+    { "<leader>cpa", function()
+      require("codecompanion").toggle_cli({ agent = "antigravity" })
+    end, desc = "Antigravity CLI", mode = { "n", "v" } },
+
+    -- CLI interaction keymaps (docs: codecompanion.olimorris.dev/usage/cli)
+    { "<LocalLeader>cp", function()
+      return require("codecompanion").cli({ prompt = true })
+    end, desc = "Prompt CLI agent" },
+    { "<LocalLeader>ca", function()
+      return require("codecompanion").cli("#{this}", { focus = false })
+    end, desc = "Add context to CLI agent", mode = { "n", "v" } },
+    { "<LocalLeader>cd", function()
+      return require("codecompanion").cli("#{diagnostics} Peux-tu corriger ces erreurs ?", { focus = false, submit = true })
+    end, desc = "Send diagnostics to CLI agent" },
+    { "<LocalLeader>ct", function()
+      return require("codecompanion").cli("#{terminal} Partage la sortie du terminal. Peux-tu corriger ?", { focus = false, submit = true })
+    end, desc = "Send terminal to CLI agent" },
+
+    -- General
     { "<leader>ci", "<cmd>CodeCompanionInline<cr>", desc = "Inline IA", mode = { "n", "v" } },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA" },
     { "<leader>cg", "<cmd>CodeCompanionAgent<cr>", desc = "Agent IA" },
