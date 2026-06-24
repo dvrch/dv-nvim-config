@@ -14,6 +14,26 @@ return {
           show_model_choices = true,
         },
         openrouter = "openrouter",
+        ollama = "ollama",
+        copilot = "copilot",
+        mistral = "mistral",
+        vibe = function()
+          return require("codecompanion.adapters").extend("openai_compatible", {
+            name = "vibe",
+            formatted_name = "Vibe Mistral",
+            env = {
+              url = os.getenv("VIBE_URL") or "http://localhost:1234",
+              api_key = os.getenv("VIBE_API_KEY") or "not-needed",
+              chat_url = "/v1/chat/completions",
+              models_endpoint = "/v1/models",
+            },
+            schema = {
+              model = {
+                default = "mistral",
+              },
+            },
+          })
+        end,
       },
       acp = {
         opts = {
@@ -110,6 +130,10 @@ return {
 
   keys = {
     { "<leader>cr", "<cmd>CodeCompanionChat openrouter<cr>", desc = "Chat OpenRouter" },
+    { "<leader>co", "<cmd>CodeCompanionChat ollama<cr>", desc = "Chat Ollama (local)" },
+    { "<leader>cc", "<cmd>CodeCompanionChat copilot<cr>", desc = "Chat Copilot" },
+    { "<leader>cm", "<cmd>CodeCompanionChat mistral<cr>", desc = "Chat Mistral" },
+    { "<leader>cv", "<cmd>CodeCompanionChat vibe<cr>", desc = "Chat Vibe Mistral (local)" },
     { "<leader>ci", "<cmd>CodeCompanionInline<cr>", desc = "Inline IA", mode = { "n", "v" } },
     { "<leader>ca", "<cmd>CodeCompanionActions<cr>", desc = "Actions IA" },
     { "<leader>cg", "<cmd>CodeCompanionAgent<cr>", desc = "Agent IA" },
