@@ -62,25 +62,6 @@ return {
       },
     },
 
-    interactions = {
-      cli = {
-        opts = {
-          auto_insert = true,
-        },
-        agents = {
-          copilot = {
-            cmd = "gh",
-            args = { "copilot" },
-            description = "GitHub Copilot CLI",
-          },
-          antigravity = {
-            cmd = "agy",
-            description = "Antigravity CLI",
-          },
-        },
-      },
-    },
-
     display = {
       chat = {
         window = {
@@ -112,11 +93,18 @@ return {
   config = function(_, opts)
     vim.env.OPENROUTER_API_KEY = "sk-or-v1-REMOVED"
 
-    opts.interactions = opts.interactions or {}
-    opts.interactions.cli = opts.interactions.cli or {}
-    opts.interactions.cli.agent = "copilot"
-
     require("codecompanion").setup(opts)
+
+    -- CLI agents must be injected post-setup because the strategies migration
+    -- inside M.setup overwrites opts.interactions
+    local cc_cfg = require("codecompanion.config").config
+    cc_cfg.interactions.cli.agents = {
+      copilot = { cmd = "gh", args = { "copilot" }, description = "GitHub Copilot CLI" },
+      antigravity = { cmd = "agy", description = "Antigravity CLI" },
+    }
+    cc_cfg.interactions.cli.agent = "copilot"
+    cc_cfg.interactions.cli.opts.auto_insert = true
+
     local openrouter = require("codecompanion.adapters.http.openrouter")
     openrouter.schema.model.default = "openrouter/free"
 
