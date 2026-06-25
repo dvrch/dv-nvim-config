@@ -11,22 +11,29 @@ vim.api.nvim_create_autocmd("TermOpen", {
 })
 
 local function create_shell_and_inject(cmd)
-  local shell = vim.env.SHELL or "bash"
+  local shell = vim.o.shell or vim.env.SHELL or "bash"
   local buf = vim.api.nvim_get_current_buf()
-  local chan = vim.fn.termopen(shell)
+
+  local is_pwsh = shell:match("pwsh$") or shell:match("powershell$")
+  local chan
+  if is_pwsh then
+    chan = vim.fn.termopen({shell, "-NoLogo", "-NoExit", "-Command", cmd})
+  else
+    chan = vim.fn.termopen(shell)
+  end
   M.last_term_chan = chan
-  
-  -- Nommer l'onglet/buffer de façon intelligente
+
   local short_cmd = cmd:sub(1, 15):gsub("[%s/:]", "_")
   local clean_name = "kr_[" .. short_cmd .. "]"
   pcall(vim.api.nvim_buf_set_name, buf, clean_name)
 
-  -- Petit délai pour s'assurer que le shell est prêt avant d'écrire
-  vim.defer_fn(function()
-    if M.last_term_chan then
-      vim.api.nvim_chan_send(M.last_term_chan, cmd .. "\n")
-    end
-  end, 100)
+  if not is_pwsh then
+    vim.defer_fn(function()
+      if M.last_term_chan then
+        vim.api.nvim_chan_send(M.last_term_chan, cmd .. "\n")
+      end
+    end, 100)
+  end
 end
 
 -- Commande pour Extraire le buffer actuel et l'isoler dans une VRAIE nouvelle instance (v -n)
