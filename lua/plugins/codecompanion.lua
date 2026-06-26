@@ -91,7 +91,6 @@ return {
   },
 
   config = function(_, opts)
-    vim.env.OPENROUTER_API_KEY = "sk-or-v1-REMOVED"
 
     require("codecompanion").setup(opts)
 
