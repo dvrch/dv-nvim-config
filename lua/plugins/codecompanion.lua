@@ -105,6 +105,29 @@ return {
     cc_cfg.interactions.cli.agent = "copilot"
     cc_cfg.interactions.cli.opts.auto_insert = true
 
+    -- Wrap chat() to inject current buffer as default context
+    local orig_chat = require("codecompanion").chat
+    require("codecompanion").chat = function(args)
+      args = args or {}
+      args.callbacks = args.callbacks or {}
+      local existing = args.callbacks.on_created
+      args.callbacks.on_created = {}
+      if type(existing) == "function" then table.insert(args.callbacks.on_created, existing)
+      elseif type(existing) == "table" then vim.list_extend(args.callbacks.on_created, existing) end
+      table.insert(args.callbacks.on_created, function(chat)
+        local buf = vim.api.nvim_get_current_buf()
+        local ft = vim.bo[buf].filetype
+        if ft == "" or ft == "codecompanion" or ft == "neo-tree" then return end
+        local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+        chat:add_context({
+          content = table.concat(lines, "\n"),
+          filetype = ft,
+          path = vim.api.nvim_buf_get_name(buf),
+        }, "buffer", "<buffer>" .. vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":t") .. "</buffer>")
+      end)
+      return orig_chat(args)
+    end
+
     local openrouter = require("codecompanion.adapters.http.openrouter")
     openrouter.schema.model.default = "openrouter/free"
 
